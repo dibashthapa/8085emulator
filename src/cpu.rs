@@ -24,12 +24,24 @@ enum Registers {
 
 impl Registers {}
 
+#[derive(Clone)]
 struct FlagRegisters {
-    sign: bool,
-    zero: bool,
-    auxiliary_carry: bool,
-    parity: bool,
-    carry: bool,
+    pub sign: bool,
+    pub zero: bool,
+    pub auxiliary_carry: bool,
+    pub parity: bool,
+    pub carry: bool,
+}
+impl FlagRegisters {
+    fn new() -> Self {
+        Self {
+            sign: false,
+            zero: false,
+            auxiliary_carry: false,
+            parity: false,
+            carry: false,
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -45,6 +57,7 @@ pub struct Cpu {
     h: u8,
     l: u8,
     memory: Memory,
+    flags: FlagRegisters,
 }
 
 impl Cpu {
@@ -61,6 +74,7 @@ impl Cpu {
             h: 0,
             l: 0,
             memory: Memory::new(),
+            flags: FlagRegisters::new(),
         }
     }
 
@@ -86,6 +100,29 @@ impl Cpu {
                 InstructionSet::Lda(address) => {
                     self.accumulator = self.memory.read(*address as usize);
                 }
+                InstructionSet::Add(register) => match register {
+                    Registers::RegB => {
+                        self.accumulator = self.accumulator + self.b;
+                    }
+                    Registers::RegC => {
+                        self.accumulator = self.accumulator + self.c;
+                    }
+                    Registers::RegD => {
+                        self.accumulator = self.accumulator + self.d;
+                    }
+                    Registers::RegE => {
+                        self.accumulator = self.accumulator + self.e;
+                    }
+                    Registers::RegH => {
+                        self.accumulator = self.accumulator + self.h;
+                    }
+                    Registers::RegL => {
+                        self.accumulator = self.accumulator + self.l;
+                    }
+                    Registers::RegA => {
+                        self.accumulator = self.accumulator + self.accumulator;
+                    }
+                },
                 InstructionSet::Lxi(rpair, value) => match rpair {
                     Registers::RegB => {
                         let high_byte: u8 = ((value & 0xFF00) >> 8) as u8;
@@ -175,11 +212,24 @@ impl Cpu {
                     Registers::RegB => {
                         self.b = *value;
                     }
-                    _ => {}
+                    Registers::RegC => {
+                        self.c = *value;
+                    }
+                    Registers::RegD => {
+                        self.d = *value;
+                    }
+                    Registers::RegE => {
+                        self.e = *value;
+                    }
+                    Registers::RegH => {
+                        self.h = *value;
+                    }
+                    Registers::RegL => {
+                        self.l = *value;
+                    }
                 },
 
                 InstructionSet::Hlt => break,
-                _ => {}
             }
             self.advance()
         }
@@ -253,5 +303,27 @@ mod test {
         cpu.run();
         assert_eq!(cpu.h, 0xFF);
         assert_eq!(cpu.l, 0xFF);
+    }
+
+    #[test]
+    fn test_add_b() {
+        let mut cpu = Cpu::new(vec![
+            InstructionSet::Mvi(Registers::RegA, 20),
+            InstructionSet::Mvi(Registers::RegB, 30),
+            InstructionSet::Add(Registers::RegB),
+        ]);
+        cpu.run();
+        assert_eq!(cpu.accumulator, 50)
+    }
+
+    #[test]
+    fn test_add_c() {
+        let mut cpu = Cpu::new(vec![
+            InstructionSet::Mvi(Registers::RegA, 80),
+            InstructionSet::Mvi(Registers::RegC, 90),
+            InstructionSet::Add(Registers::RegC),
+        ]);
+        cpu.run();
+        assert_eq!(cpu.accumulator, 170);
     }
 }
