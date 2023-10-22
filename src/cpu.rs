@@ -330,33 +330,33 @@ mod test {
     #[test]
     fn test_add_b() {
         let mut cpu = Cpu::new(vec![
-            InstructionSet::Mvi(Registers::RegA, 20),
-            InstructionSet::Mvi(Registers::RegB, 30),
+            InstructionSet::Mvi(Registers::RegA, 0x20),
+            InstructionSet::Mvi(Registers::RegB, 0x30),
             InstructionSet::Add(Registers::RegB),
         ]);
         cpu.run();
-        assert_eq!(cpu.accumulator, 50)
+        assert_eq!(cpu.accumulator, 0x50)
     }
 
     #[test]
     fn test_add_c() {
         let mut cpu = Cpu::new(vec![
-            InstructionSet::Mvi(Registers::RegA, 80),
-            InstructionSet::Mvi(Registers::RegC, 90),
+            InstructionSet::Mvi(Registers::RegA, 0x60),
+            InstructionSet::Mvi(Registers::RegC, 0x90),
             InstructionSet::Add(Registers::RegC),
         ]);
         cpu.run();
-        assert_eq!(cpu.accumulator, 170);
+        assert_eq!(cpu.accumulator, 0xF0);
     }
 
     #[test]
     fn test_sub_b() {
         let mut cpu = Cpu::new(vec![
-            InstructionSet::Mvi(Registers::RegA, 90),
-            InstructionSet::Mvi(Registers::RegC, 60),
+            InstructionSet::Mvi(Registers::RegA, 0x90),
+            InstructionSet::Mvi(Registers::RegC, 0x60),
             InstructionSet::Sub(Registers::RegC),
         ]);
         cpu.run();
-        assert_eq!(cpu.accumulator, 30);
+        assert_eq!(cpu.accumulator, 0x30);
     }
 }
