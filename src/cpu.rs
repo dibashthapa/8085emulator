@@ -126,7 +126,9 @@ impl Cpu {
                         (Registers::RegA, Registers::RegL) => {
                             self.accumulator = self.l;
                         }
-                        _ => {}
+                        _ => {
+                            println!("Unhandled");
+                        }
                     }
                 }
                 InstructionSet::Sta(address) => {
@@ -135,6 +137,9 @@ impl Cpu {
                 InstructionSet::Mvi(register, value) => match register {
                     Registers::RegA => {
                         self.accumulator = *value;
+                    }
+                    Registers::RegB => {
+                        self.b = *value;
                     }
                     _ => {}
                 },
@@ -164,14 +169,16 @@ mod test {
     }
 
     #[test]
-    fn test_mov() {
+    fn test_mov_b() {
         let mut cpu = Cpu::new(vec![
             InstructionSet::Mvi(Registers::RegA, 32),
             InstructionSet::Mov(Registers::RegB, Registers::RegA),
         ]);
         cpu.run();
         assert_eq!(cpu.b, 32);
-
+    }
+    #[test]
+    fn test_mov_a() {
         let mut cpu = Cpu::new(vec![
             InstructionSet::Mvi(Registers::RegB, 32),
             InstructionSet::Mov(Registers::RegA, Registers::RegB),
