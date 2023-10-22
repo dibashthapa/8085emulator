@@ -2,7 +2,7 @@ use crate::memory::Memory;
 
 #[derive(PartialEq, Clone, Debug)]
 pub enum InstructionSet {
-    Add,
+    Add(Registers),
     Mov(Registers, Registers),
     Mvi(Registers, u8),
     Sta(u16),
@@ -84,53 +84,64 @@ impl Cpu {
         while self.ip < self.program.len() {
             match self.fetch() {
                 InstructionSet::Lda(address) => {
-                    // self.accumulator =
+                    self.accumulator = self.memory.read(*address as usize);
                 }
-                InstructionSet::Mov(destination, source) => {
-                    // moving the content from one register to another
-
-                    match (destination, source) {
-                        (Registers::RegB, Registers::RegA) => {
-                            self.b = self.accumulator;
-                        }
-                        (Registers::RegA, Registers::RegB) => {
-                            self.accumulator = self.b;
-                        }
-                        (Registers::RegB, Registers::RegC) => {
-                            self.b = self.c;
-                        }
-                        (Registers::RegD, Registers::RegC) => {
-                            self.d = self.c;
-                        }
-                        (Registers::RegE, Registers::RegC) => {
-                            self.e = self.c;
-                        }
-                        (Registers::RegH, Registers::RegC) => {
-                            self.h = self.c;
-                        }
-                        (Registers::RegL, Registers::RegC) => {
-                            self.l = self.c;
-                        }
-                        (Registers::RegA, Registers::RegC) => {
-                            self.accumulator = self.c;
-                        }
-                        (Registers::RegA, Registers::RegD) => {
-                            self.accumulator = self.d;
-                        }
-                        (Registers::RegA, Registers::RegE) => {
-                            self.accumulator = self.e;
-                        }
-                        (Registers::RegA, Registers::RegH) => {
-                            self.accumulator = self.h;
-                        }
-                        (Registers::RegA, Registers::RegL) => {
-                            self.accumulator = self.l;
-                        }
-                        _ => {
-                            println!("Unhandled");
-                        }
+                InstructionSet::Mov(destination, source) => match (destination, source) {
+                    (Registers::RegB, Registers::RegA) => {
+                        self.b = self.accumulator;
                     }
-                }
+                    (Registers::RegC, Registers::RegA) => {
+                        self.c = self.accumulator;
+                    }
+                    (Registers::RegD, Registers::RegA) => {
+                        self.d = self.accumulator;
+                    }
+                    (Registers::RegE, Registers::RegA) => {
+                        self.e = self.accumulator;
+                    }
+                    (Registers::RegH, Registers::RegA) => {
+                        self.h = self.accumulator;
+                    }
+                    (Registers::RegL, Registers::RegA) => {
+                        self.l = self.accumulator;
+                    }
+                    (Registers::RegA, Registers::RegB) => {
+                        self.accumulator = self.b;
+                    }
+                    (Registers::RegA, Registers::RegC) => {
+                        self.accumulator = self.c;
+                    }
+                    (Registers::RegB, Registers::RegC) => {
+                        self.b = self.c;
+                    }
+                    (Registers::RegD, Registers::RegC) => {
+                        self.d = self.c;
+                    }
+                    (Registers::RegE, Registers::RegC) => {
+                        self.e = self.c;
+                    }
+                    (Registers::RegH, Registers::RegC) => {
+                        self.h = self.c;
+                    }
+                    (Registers::RegL, Registers::RegC) => {
+                        self.l = self.c;
+                    }
+                    (Registers::RegA, Registers::RegD) => {
+                        self.accumulator = self.d;
+                    }
+                    (Registers::RegA, Registers::RegE) => {
+                        self.accumulator = self.e;
+                    }
+                    (Registers::RegA, Registers::RegH) => {
+                        self.accumulator = self.h;
+                    }
+                    (Registers::RegA, Registers::RegL) => {
+                        self.accumulator = self.l;
+                    }
+                    _ => {
+                        println!("Unhandled");
+                    }
+                },
                 InstructionSet::Sta(address) => {
                     self.memory.write(*address as usize, self.accumulator);
                 }
@@ -185,5 +196,15 @@ mod test {
         ]);
         cpu.run();
         assert_eq!(cpu.accumulator, 32);
+    }
+    #[test]
+    fn test_lda() {
+        let mut cpu = Cpu::new(vec![
+            InstructionSet::Mvi(Registers::RegA, 40),
+            InstructionSet::Sta(0x0600),
+            InstructionSet::Lda(0x0600),
+        ]);
+        cpu.run();
+        assert_eq!(cpu.accumulator, 40);
     }
 }
