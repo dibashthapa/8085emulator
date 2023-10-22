@@ -3,6 +3,7 @@ use crate::memory::Memory;
 #[derive(PartialEq, Clone, Debug)]
 pub enum InstructionSet {
     Add(Registers),
+    Sub(Registers),
     Mov(Registers, Registers),
     Mvi(Registers, u8),
     Sta(u16),
@@ -100,6 +101,27 @@ impl Cpu {
                 InstructionSet::Lda(address) => {
                     self.accumulator = self.memory.read(*address as usize);
                 }
+                InstructionSet::Sub(register) => match register {
+                    Registers::RegB => self.accumulator = self.accumulator - self.b,
+                    Registers::RegC => {
+                        self.accumulator = self.accumulator - self.c;
+                    }
+                    Registers::RegD => {
+                        self.accumulator = self.accumulator - self.d;
+                    }
+                    Registers::RegE => {
+                        self.accumulator = self.accumulator - self.e;
+                    }
+                    Registers::RegH => {
+                        self.accumulator = self.accumulator - self.h;
+                    }
+                    Registers::RegL => {
+                        self.accumulator = self.accumulator - self.l;
+                    }
+                    Registers::RegA => {
+                        self.accumulator = self.accumulator - self.accumulator;
+                    }
+                },
                 InstructionSet::Add(register) => match register {
                     Registers::RegB => {
                         self.accumulator = self.accumulator + self.b;
@@ -325,5 +347,16 @@ mod test {
         ]);
         cpu.run();
         assert_eq!(cpu.accumulator, 170);
+    }
+
+    #[test]
+    fn test_sub_b() {
+        let mut cpu = Cpu::new(vec![
+            InstructionSet::Mvi(Registers::RegA, 90),
+            InstructionSet::Mvi(Registers::RegC, 60),
+            InstructionSet::Sub(Registers::RegC),
+        ]);
+        cpu.run();
+        assert_eq!(cpu.accumulator, 30);
     }
 }
