@@ -6,6 +6,7 @@ pub enum InstructionSet {
     Mov(Registers, Registers),
     Mvi(Registers, u8),
     Sta(u16),
+    Lxi(Registers, u16),
     Lda(u16),
     Hlt,
 }
@@ -79,13 +80,35 @@ impl Cpu {
         self.ip += 1;
     }
 
-    pub fn eval(&mut self) {}
     pub fn run(&mut self) {
         while self.ip < self.program.len() {
             match self.fetch() {
                 InstructionSet::Lda(address) => {
                     self.accumulator = self.memory.read(*address as usize);
                 }
+                InstructionSet::Lxi(rpair, value) => match rpair {
+                    Registers::RegB => {
+                        let high_byte: u8 = ((value & 0xFF00) >> 8) as u8;
+                        let low_byte: u8 = (value & 0x00FF) as u8;
+                        self.b = high_byte;
+                        self.c = low_byte;
+                    }
+                    Registers::RegD => {
+                        let high_byte: u8 = ((value & 0xFF00) >> 8) as u8;
+                        let low_byte: u8 = (value & 0x00FF) as u8;
+                        self.d = high_byte;
+                        self.e = low_byte;
+                    }
+                    Registers::RegH => {
+                        let high_byte: u8 = ((value & 0xFF00) >> 8) as u8;
+                        let low_byte: u8 = (value & 0x00FF) as u8;
+                        self.h = high_byte;
+                        self.l = low_byte;
+                    }
+                    _ => {
+                        eprintln!("{:#?} not supported ", rpair);
+                    }
+                },
                 InstructionSet::Mov(destination, source) => match (destination, source) {
                     (Registers::RegB, Registers::RegA) => {
                         self.b = self.accumulator;
@@ -206,5 +229,29 @@ mod test {
         ]);
         cpu.run();
         assert_eq!(cpu.accumulator, 40);
+    }
+
+    #[test]
+    fn test_lxi_b() {
+        let mut cpu = Cpu::new(vec![InstructionSet::Lxi(Registers::RegB, 0x2050)]);
+        cpu.run();
+        assert_eq!(cpu.b, 0x20);
+        assert_eq!(cpu.c, 0x50);
+    }
+
+    #[test]
+    fn test_lxi_d() {
+        let mut cpu = Cpu::new(vec![InstructionSet::Lxi(Registers::RegD, 0x2051)]);
+        cpu.run();
+        assert_eq!(cpu.d, 0x20);
+        assert_eq!(cpu.e, 0x51);
+    }
+
+    #[test]
+    fn test_lxi_h() {
+        let mut cpu = Cpu::new(vec![InstructionSet::Lxi(Registers::RegH, 0xFFFF)]);
+        cpu.run();
+        assert_eq!(cpu.h, 0xFF);
+        assert_eq!(cpu.l, 0xFF);
     }
 }
