@@ -9,6 +9,7 @@ pub enum InstructionSet {
     Sta(u16),
     Lxi(Registers, u16),
     Lda(u16),
+    Inx(Registers),
     Hlt,
 }
 
@@ -96,14 +97,6 @@ impl Cpu {
         &self.program[self.ip]
     }
 
-    fn pop(&mut self) -> Option<InstructionSet> {
-        self.program.pop()
-    }
-
-    fn push(&mut self, value: i32) {
-        self.stack.push(value);
-    }
-
     fn advance(&mut self) {
         self.ip += 1;
     }
@@ -111,6 +104,32 @@ impl Cpu {
     pub fn run(&mut self) {
         while self.ip < self.program.len() {
             match self.fetch() {
+                InstructionSet::Inx(register) => match register {
+                    Registers::RegB => {
+                        let address = u16::from_be_bytes([self.b, self.c]);
+                        let new_address = address.wrapping_add(1);
+
+                        self.b = ((new_address & 0xFF00) >> 8) as u8;
+                        self.c = (new_address & 0xFF00) as u8;
+                        println!(
+                            "new address is {:X}, b is {}, c is {}",
+                            new_address, self.b, self.c
+                        );
+                    }
+                    Registers::RegD => {
+                        let address = u16::from_be_bytes([self.d, self.e]);
+                        let new_address = address.wrapping_add(1);
+                        self.d = (new_address >> 8) as u8;
+                        self.e = new_address as u8;
+                    }
+                    Registers::RegH => {
+                        let address = u16::from_be_bytes([self.h, self.l]);
+                        let new_address = address.wrapping_add(1);
+                        self.h = (new_address >> 8) as u8;
+                        self.l = new_address as u8;
+                    }
+                    _ => {}
+                },
                 InstructionSet::Lda(address) => {
                     self.accumulator = self.memory.read(*address as usize);
                 }
@@ -371,5 +390,28 @@ mod test {
         ]);
         cpu.run();
         assert_eq!(cpu.accumulator, 0x30);
+    }
+
+    #[test]
+    fn test_inx_b() {
+        let mut cpu = Cpu::new(vec![
+            InstructionSet::Mvi(Registers::RegB, 0x29),
+            InstructionSet::Mvi(Registers::RegC, 0x29),
+            InstructionSet::Inx(Registers::RegB),
+        ]);
+        cpu.run();
+        assert_eq!(cpu.b, 0xB);
+        assert_eq!(cpu.c, 0xB8);
+    }
+
+    #[test]
+    fn test_inx_d() {
+        let mut cpu = Cpu::new(vec![
+            InstructionSet::Mvi(Registers::RegD, 29),
+            InstructionSet::Mvi(Registers::RegE, 99),
+            InstructionSet::Inx(Registers::RegD),
+        ]);
+        cpu.run();
+        assert_eq!(cpu.e, 30);
     }
 }
