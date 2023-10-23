@@ -4,6 +4,7 @@ use crate::memory::Memory;
 pub enum InstructionSet {
     Add(Registers),
     Sub(Registers),
+    Adi(u8),
     Mov(Registers, Registers),
     Mvi(Registers, u8),
     Sta(u16),
@@ -33,7 +34,7 @@ impl Registers {
             "D" => Registers::RegD,
             "E" => Registers::RegE,
             "H" => Registers::RegH,
-            "L" => Registers::RegH,
+            "L" => Registers::RegL,
             _ => panic!("unknown register"),
         }
     }
@@ -65,12 +66,12 @@ pub struct Cpu {
     stack: Vec<i32>,
     program: Vec<InstructionSet>,
     pub accumulator: u8,
-    b: u8,
-    c: u8,
-    d: u8,
-    e: u8,
-    h: u8,
-    l: u8,
+    pub b: u8,
+    pub c: u8,
+    pub d: u8,
+    pub e: u8,
+    pub h: u8,
+    pub l: u8,
     pub memory: Memory,
     flags: FlagRegisters,
 }
@@ -97,6 +98,7 @@ impl Cpu {
         &self.program[self.ip]
     }
 
+
     fn advance(&mut self) {
         self.ip += 1;
     }
@@ -109,7 +111,7 @@ impl Cpu {
                         let address = u16::from_be_bytes([self.b, self.c]);
                         let new_address = address.wrapping_add(1);
                         self.b = (new_address >> 8) as u8;
-                        self.c = new_address  as u8;
+                        self.c = new_address as u8;
                     }
                     Registers::RegD => {
                         let address = u16::from_be_bytes([self.d, self.e]);
@@ -149,6 +151,9 @@ impl Cpu {
                         self.accumulator = self.accumulator - self.accumulator;
                     }
                 },
+                InstructionSet::Adi(value) => {
+                    self.accumulator = self.accumulator + *value;
+                }
                 InstructionSet::Add(register) => match register {
                     Registers::RegB => {
                         self.accumulator = self.accumulator + self.b;

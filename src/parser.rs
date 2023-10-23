@@ -1,3 +1,5 @@
+use std::collections::btree_map::Values;
+
 use logos::Logos;
 
 use crate::cpu::{InstructionSet, Registers};
@@ -15,8 +17,10 @@ pub enum Token {
     #[token("STA")]
     #[token("LXI")]
     #[token("ADD")]
+    #[token("ADI")]
     #[token("SUB")]
     #[token("INX")]
+    #[token("HLT")]
     OpCode,
 
     #[regex(r"[ABCDEHL]")]
@@ -74,6 +78,22 @@ pub fn parse_instructions(code: &str) -> Vec<InstructionSet> {
                             instructions.push(InstructionSet::Inx(register));
                         }
                     }
+                    "LXI" => {
+                        if let Some(Ok(Token::Register)) =  lexer.next() {
+                            let register = Registers::from(lexer.slice());
+                            if let Some(Ok(Token::Address(address))) = lexer.next() {
+                                instructions.push(InstructionSet::Lxi(register, address));
+                            }
+                        }
+                    }
+                    "ADI" => {
+                        if let Some(Ok(Token::Number(value))) = lexer.next() {
+                            instructions.push(InstructionSet::Adi(value));
+                        }
+                    }
+                    "HLT" => {
+                        instructions.push(InstructionSet::Hlt);
+                    }
                     _ => {
                         panic!("unkown opcode");
                     }
@@ -116,6 +136,16 @@ mod tests {
         assert_eq!(lex.slice(), "A");
         assert_eq!(lex.next(), Some(Ok(Token::Register)));
         assert_eq!(lex.slice(), "B");
+    }
+
+    #[test]
+    fn test_lxi(){
+        let mut lex = Token::lexer(
+            r#"LXI 2000"#,
+        );
+        assert_eq!(lex.next(), Some(Ok(Token::OpCode)));
+        assert_eq!(lex.slice(), "LXI");
+        assert_eq!(lex.next(), Some(Ok(Token::Address(2000))));
     }
 
     #[test]

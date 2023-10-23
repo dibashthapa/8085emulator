@@ -7,9 +7,7 @@ mod parser;
 
 fn main() {
     let source = r#"
-        MVI B,29
-        MVI C,29
-        INX B
+        LXI H,2000
         "#;
     let instructions = parse_instructions(source);
     let mut cpu = Cpu::new(instructions);
