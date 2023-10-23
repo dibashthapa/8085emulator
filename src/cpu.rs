@@ -13,7 +13,7 @@ pub enum InstructionSet {
 }
 
 #[derive(PartialEq, Clone, Debug)]
-enum Registers {
+pub enum Registers {
     RegB,
     RegC,
     RegD,
@@ -23,9 +23,22 @@ enum Registers {
     RegA,
 }
 
-impl Registers {}
+impl Registers {
+    pub fn from(reg: &str) -> Registers {
+        match reg {
+            "A" => Registers::RegA,
+            "B" => Registers::RegB,
+            "C" => Registers::RegC,
+            "D" => Registers::RegD,
+            "E" => Registers::RegE,
+            "H" => Registers::RegH,
+            "L" => Registers::RegH,
+            _ => panic!("unknown register"),
+        }
+    }
+}
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct FlagRegisters {
     pub sign: bool,
     pub zero: bool,
@@ -45,12 +58,12 @@ impl FlagRegisters {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Cpu {
     pub ip: usize,
     stack: Vec<i32>,
     program: Vec<InstructionSet>,
-    accumulator: u8,
+    pub accumulator: u8,
     b: u8,
     c: u8,
     d: u8,

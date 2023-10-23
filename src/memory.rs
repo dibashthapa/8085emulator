@@ -1,6 +1,6 @@
 const MEMORY_SIZE: usize = 0x10000;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Memory {
     pub addresses: [u8; MEMORY_SIZE],
 }

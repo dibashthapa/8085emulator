@@ -1,16 +1,18 @@
 use cpu::{Cpu, InstructionSet};
 use logos::Logos;
-use parser::Token;
+use parser::{parse_instructions, Token};
 
 mod cpu;
 mod memory;
 mod parser;
 
 fn main() {
-    let source = "MVI A,90";
-
-    let mut lexer = Token::lexer(source);
-    for token in lexer.into_iter() {
-        dbg!(token);
-    }
+    let source = r#"
+        MVI B,20
+        MOV A,B
+        "#;
+    let instructions = parse_instructions(source);
+    let mut cpu = Cpu::new(instructions);
+    cpu.run();
+    println!("accumulator is {}", cpu.accumulator);
 }
