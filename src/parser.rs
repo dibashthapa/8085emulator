@@ -11,6 +11,9 @@ pub enum Token {
 
     #[token("MVI")]
     #[token("MOV")]
+    #[token("LDA")]
+    #[token("STA")]
+    #[token("LXI")]
     #[token("ADD")]
     #[token("SUB")]
     OpCode,
@@ -49,6 +52,11 @@ pub fn parse_instructions(code: &str) -> Vec<InstructionSet> {
                                 let source = Registers::from(lexer.slice());
                                 instructions.push(InstructionSet::Mov(desination, source));
                             }
+                        }
+                    }
+                    "STA" => {
+                        if let Some(Ok(Token::Address(address))) = lexer.next() {
+                            instructions.push(InstructionSet::Sta(address));
                         }
                     }
                     _ => {

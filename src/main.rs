@@ -10,9 +10,9 @@ fn main() {
     let source = r#"
         MVI B,20
         MOV A,B
+        STA 2000
         "#;
     let instructions = parse_instructions(source);
     let mut cpu = Cpu::new(instructions);
     cpu.run();
-    println!("accumulator is {}", cpu.accumulator);
 }

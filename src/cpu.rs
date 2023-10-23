@@ -70,7 +70,7 @@ pub struct Cpu {
     e: u8,
     h: u8,
     l: u8,
-    memory: Memory,
+    pub memory: Memory,
     flags: FlagRegisters,
 }
 
