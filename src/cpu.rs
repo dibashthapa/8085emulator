@@ -108,13 +108,8 @@ impl Cpu {
                     Registers::RegB => {
                         let address = u16::from_be_bytes([self.b, self.c]);
                         let new_address = address.wrapping_add(1);
-
-                        self.b = ((new_address & 0xFF00) >> 8) as u8;
-                        self.c = (new_address & 0xFF00) as u8;
-                        println!(
-                            "new address is {:X}, b is {}, c is {}",
-                            new_address, self.b, self.c
-                        );
+                        self.b = (new_address >> 8) as u8;
+                        self.c = new_address  as u8;
                     }
                     Registers::RegD => {
                         let address = u16::from_be_bytes([self.d, self.e]);
@@ -292,7 +287,7 @@ impl Cpu {
 
 #[cfg(test)]
 mod test {
-    use crate::*;
+    use super::*;
 
     use super::Registers;
     #[test]
@@ -395,23 +390,24 @@ mod test {
     #[test]
     fn test_inx_b() {
         let mut cpu = Cpu::new(vec![
-            InstructionSet::Mvi(Registers::RegB, 0x29),
-            InstructionSet::Mvi(Registers::RegC, 0x29),
+            InstructionSet::Mvi(Registers::RegB, 29),
+            InstructionSet::Mvi(Registers::RegC, 29),
             InstructionSet::Inx(Registers::RegB),
         ]);
         cpu.run();
-        assert_eq!(cpu.b, 0xB);
-        assert_eq!(cpu.c, 0xB8);
+        assert_eq!(cpu.b, 0x1D);
+        assert_eq!(cpu.c, 0x1E);
     }
 
     #[test]
     fn test_inx_d() {
         let mut cpu = Cpu::new(vec![
-            InstructionSet::Mvi(Registers::RegD, 29),
-            InstructionSet::Mvi(Registers::RegE, 99),
+            InstructionSet::Mvi(Registers::RegD, 20),
+            InstructionSet::Mvi(Registers::RegE, 21),
             InstructionSet::Inx(Registers::RegD),
         ]);
         cpu.run();
-        assert_eq!(cpu.e, 30);
+        assert_eq!(cpu.d, 20);
+        assert_eq!(cpu.e, 22);
     }
 }

@@ -16,6 +16,7 @@ pub enum Token {
     #[token("LXI")]
     #[token("ADD")]
     #[token("SUB")]
+    #[token("INX")]
     OpCode,
 
     #[regex(r"[ABCDEHL]")]
@@ -65,6 +66,12 @@ pub fn parse_instructions(code: &str) -> Vec<InstructionSet> {
                     "LDA" => {
                         if let Some(Ok(Token::Address(address))) = lexer.next() {
                             instructions.push(InstructionSet::Lda(address));
+                        }
+                    }
+                    "INX" => {
+                        if let Some(Ok(Token::Register)) = lexer.next() {
+                            let register = Registers::from(lexer.slice());
+                            instructions.push(InstructionSet::Inx(register));
                         }
                     }
                     _ => {
