@@ -4,7 +4,8 @@ Emulator for 8085 from scratch using Rust.
 
 
 
-## Documentation
+## How it works
+<img src="images/8085_working.png">
 
 
 
