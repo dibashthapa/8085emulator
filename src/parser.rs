@@ -1,4 +1,4 @@
-use logos::{Lexer, Logos};
+use logos::Logos;
 
 use crate::cpu::{InstructionSet, Registers};
 
@@ -20,6 +20,9 @@ pub enum Token {
 
     #[regex(r"[ABCDEHL]")]
     Register,
+
+    #[regex(r";.*", logos::skip)]
+    Comment,
 
     #[regex(r"[0-9]{2}", |lex| lex.slice().parse::<u8>().unwrap())]
     Number(u8),
@@ -59,13 +62,18 @@ pub fn parse_instructions(code: &str) -> Vec<InstructionSet> {
                             instructions.push(InstructionSet::Sta(address));
                         }
                     }
+                    "LDA" => {
+                        if let Some(Ok(Token::Address(address))) = lexer.next() {
+                            instructions.push(InstructionSet::Lda(address));
+                        }
+                    }
                     _ => {
                         panic!("unkown opcode");
                     }
                 },
                 _ => {}
             },
-            Err(err) => {}
+            Err(_) => {}
         }
     }
     instructions
@@ -101,5 +109,14 @@ mod tests {
         assert_eq!(lex.slice(), "A");
         assert_eq!(lex.next(), Some(Ok(Token::Register)));
         assert_eq!(lex.slice(), "B");
+    }
+
+    #[test]
+    fn test_comment() {
+        let mut lex = Token::lexer(
+            r#"; Hello this is dibash
+            "#,
+        );
+        assert_eq!(lex.next(), None);
     }
 }
