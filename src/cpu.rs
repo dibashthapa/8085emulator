@@ -10,7 +10,12 @@ pub enum InstructionSet {
     Sta(u16),
     Lxi(Registers, u16),
     Lda(u16),
+    Ldax(Registers),
     Inx(Registers),
+    Lhld(u16),
+    Shld(u16),
+    Inr(Registers),
+    Dcr(Registers),
     Hlt,
 }
 
@@ -98,7 +103,6 @@ impl Cpu {
         &self.program[self.ip]
     }
 
-
     fn advance(&mut self) {
         self.ip += 1;
     }
@@ -106,6 +110,80 @@ impl Cpu {
     pub fn run(&mut self) {
         while self.ip < self.program.len() {
             match self.fetch() {
+                InstructionSet::Ldax(registers) => match registers {
+                    Registers::RegB => {
+                        let address = u16::from_be_bytes([self.b, self.c]);
+                        self.accumulator = self.memory.read(address as usize);
+                    }
+                    Registers::RegD => {
+                        let address = u16::from_be_bytes([self.d, self.e]);
+                        self.accumulator = self.memory.read(address as usize);
+                    }
+                    Registers::RegH => {
+                        let address = u16::from_be_bytes([self.h, self.l]);
+                        self.accumulator = self.memory.read(address as usize);
+                    }
+                    _ => {}
+                },
+
+                InstructionSet::Lhld(address) => {
+                    let low_byte = self.memory.read(*address as usize);
+                    let high_byte = self.memory.read((*address + 1) as usize);
+                    self.l = low_byte;
+                    self.h = high_byte;
+                }
+                InstructionSet::Shld(address) => {
+                    let value = u16::from_be_bytes([self.h, self.l]);
+                    self.memory.write(*address as usize, value as u8);
+                }
+                InstructionSet::Dcr(register) => match register {
+                    Registers::RegA => {
+                        self.accumulator = self.accumulator.wrapping_sub(1);
+                    }
+                    Registers::RegB => {
+                        self.b = self.b.wrapping_sub(1);
+                    }
+                    Registers::RegC => {
+                        self.c = self.c.wrapping_sub(1);
+                    }
+                    Registers::RegD => {
+                        self.d = self.d.wrapping_sub(1);
+                    }
+                    Registers::RegE => {
+                        self.e = self.e.wrapping_sub(1);
+                    }
+                    Registers::RegH => {
+                        self.h = self.h.wrapping_sub(1);
+                    }
+                    Registers::RegL => {
+                        self.l = self.l.wrapping_sub(1);
+                    }
+                },
+
+                InstructionSet::Inr(register) => match register {
+                    Registers::RegA => {
+                        self.accumulator = self.accumulator.wrapping_add(1);
+                    }
+                    Registers::RegB => {
+                        self.b = self.b.wrapping_add(1);
+                    }
+                    Registers::RegC => {
+                        self.c = self.c.wrapping_add(1);
+                    }
+                    Registers::RegD => {
+                        self.d = self.d.wrapping_add(1);
+                    }
+                    Registers::RegE => {
+                        self.e = self.e.wrapping_add(1);
+                    }
+                    Registers::RegH => {
+                        self.h = self.h.wrapping_add(1);
+                    }
+                    Registers::RegL => {
+                        self.l = self.l.wrapping_add(1);
+                    }
+                },
+
                 InstructionSet::Inx(register) => match register {
                     Registers::RegB => {
                         let address = u16::from_be_bytes([self.b, self.c]);

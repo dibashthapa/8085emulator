@@ -1,40 +1,9 @@
-use std::collections::btree_map::Values;
-
+use crate::token::Token;
 use logos::Logos;
+
 
 use crate::cpu::{InstructionSet, Registers};
 
-#[derive(Logos, Debug, PartialEq)]
-#[logos(skip r"[ \t\n,]+")]
-pub enum Token {
-    #[token("false", |_| false)]
-    #[token("true", |_| true)]
-    Bool(bool),
-
-    #[token("MVI")]
-    #[token("MOV")]
-    #[token("LDA")]
-    #[token("STA")]
-    #[token("LXI")]
-    #[token("ADD")]
-    #[token("ADI")]
-    #[token("SUB")]
-    #[token("INX")]
-    #[token("HLT")]
-    OpCode,
-
-    #[regex(r"[ABCDEHL]")]
-    Register,
-
-    #[regex(r";.*", logos::skip)]
-    Comment,
-
-    #[regex(r"[0-9]{2}", |lex| lex.slice().parse::<u8>().unwrap())]
-    Number(u8),
-
-    #[regex(r"[0-9]{4}", |lex| lex.slice().parse::<u16>().unwrap())]
-    Address(u16),
-}
 
 pub fn parse_instructions(code: &str) -> Vec<InstructionSet> {
     let mut lexer = Token::lexer(code);
@@ -86,9 +55,43 @@ pub fn parse_instructions(code: &str) -> Vec<InstructionSet> {
                             }
                         }
                     }
+                    "INR" => {
+                        if let Some(Ok(Token::Register)) = lexer.next() {
+                            let register = Registers::from(lexer.slice());
+                            instructions.push(InstructionSet::Inr(register));
+                        }
+                    }
+                    "DCR" => {
+                        if let Some(Ok(Token::Register)) = lexer.next() {
+                            let register = Registers::from(lexer.slice());
+                            instructions.push(InstructionSet::Dcr(register));
+                        }
+                    }
                     "ADI" => {
                         if let Some(Ok(Token::Number(value))) = lexer.next() {
                             instructions.push(InstructionSet::Adi(value));
+                        }
+                    }
+                    "ADD" => {
+                        if let Some(Ok(Token::Register)) = lexer.next() {
+                            let register = Registers::from(lexer.slice());
+                            instructions.push(InstructionSet::Add(register));
+                        }
+                    }
+                    "SUB" => {
+                        if let Some(Ok(Token::Register)) = lexer.next() {
+                            let register = Registers::from(lexer.slice());
+                            instructions.push(InstructionSet::Sub(register));
+                        }
+                    }
+                    "LHLD" => {
+                        if let Some(Ok(Token::Address(address))) = lexer.next() {
+                            instructions.push(InstructionSet::Lhld(address));
+                        }
+                    }
+                    "SHLD" => {
+                        if let Some(Ok(Token::Address(address))) = lexer.next() {
+                            instructions.push(InstructionSet::Shld(address));
                         }
                     }
                     "HLT" => {
