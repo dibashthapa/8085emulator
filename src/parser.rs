@@ -94,8 +94,23 @@ pub fn parse_instructions(code: &str) -> Vec<InstructionSet> {
                             instructions.push(InstructionSet::Shld(address));
                         }
                     }
+                    "LDAX" => {
+                        if let Some(Ok(Token::Register)) = lexer.next() {
+                            let register = Registers::from(lexer.slice());
+                            instructions.push(InstructionSet::Ldax(register));
+                        }
+                    }
                     "HLT" => {
                         instructions.push(InstructionSet::Hlt);
+                    }
+                    "STAX" => {
+                        if let Some(Ok(Token::Register)) = lexer.next() {
+                            let register = Registers::from(lexer.slice());
+                            instructions.push(InstructionSet::Stax(register));
+                        }
+                    }
+                    "XCHG" => {
+                        instructions.push(InstructionSet::Xchg);
                     }
                     _ => {
                         panic!("unkown opcode");

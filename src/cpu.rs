@@ -10,7 +10,9 @@ pub enum InstructionSet {
     Sta(u16),
     Lxi(Registers, u16),
     Lda(u16),
+    Xchg,
     Ldax(Registers),
+    Stax(Registers),
     Inx(Registers),
     Lhld(u16),
     Shld(u16),
@@ -110,6 +112,30 @@ impl Cpu {
     pub fn run(&mut self) {
         while self.ip < self.program.len() {
             match self.fetch() {
+                InstructionSet::Xchg => {
+                    let temp = self.d;
+                    self.d = self.h;
+                    self.h = temp;
+
+                    let temp = self.e;
+                    self.e = self.l;
+                    self.l = temp;
+                }
+                InstructionSet::Stax(registers) => match registers {
+                    Registers::RegB => {
+                        let address = u16::from_be_bytes([self.b, self.c]);
+                        self.memory.write(address as usize, self.accumulator);
+                    }
+                    Registers::RegD => {
+                        let address = u16::from_be_bytes([self.d, self.e]);
+                        self.memory.write(address as usize, self.accumulator);
+                    }
+                    Registers::RegH => {
+                        let address = u16::from_be_bytes([self.h, self.l]);
+                        self.memory.write(address as usize, self.accumulator);
+                    }
+                    _ => {}
+                }
                 InstructionSet::Ldax(registers) => match registers {
                     Registers::RegB => {
                         let address = u16::from_be_bytes([self.b, self.c]);
