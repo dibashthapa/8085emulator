@@ -4,8 +4,8 @@ Emulator for 8085 from scratch using Rust.
 
 
 
-## How it works
-<img src="images/8085_working.png">
+## Documentation
+See the [documentation](DOCUMENTATION.md) for more information.
 
 
 
@@ -17,12 +17,6 @@ Install with cargo
 cargo build
 ```
 
-## Contributing
-
-Contributions are always welcome!
-
-See `contributing.md` for ways to get started.
-
 
     
 ## Lessons Learned
@@ -33,13 +27,18 @@ I shouldn't have skipped my digital logic classes.
 
 ## Roadmap
 
-- Support all the 8085 instructions
+- Support all the 8085 instructions. Please refer to the [instruction set](https://pastraiser.com/cpu/i8085/i8085_opcodes.html) for more information.
 
 - Support flag registers
 
 
 
 
+## Contributing
+
+Contributions are always welcome!
+
+See `contributing.md` for ways to get started.
 
 
 
