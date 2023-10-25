@@ -20,6 +20,9 @@ We appreciate any improvements or new features you can bring to the 8085 Emulato
 3. **Test** your changes thoroughly to ensure they do not introduce any regressions.
 4. **Submit** a pull request, providing a detailed explanation of the changes you have made.
 
+## How it works ?
+<img src="images/8085_working.png">
+
 ## Development Setup
 
 To set up the development environment for the 8085 Emulator, follow these steps:
