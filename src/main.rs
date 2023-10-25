@@ -6,10 +6,6 @@ mod memory;
 mod parser;
 mod token;
 
-struct Dibash {
-    name: String,
-    age: u8,
-}
 
 fn main() {
     let source = r#"

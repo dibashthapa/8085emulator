@@ -5,6 +5,8 @@ pub enum InstructionSet {
     Add(Registers),
     Sub(Registers),
     Adi(u8),
+    Push(Registers),
+    Pop(Registers),
     Mov(Registers, Registers),
     Mvi(Registers, u8),
     Sta(u16),
@@ -388,6 +390,7 @@ impl Cpu {
                 },
 
                 InstructionSet::Hlt => break,
+                _ => {}
             }
             self.advance()
         }
