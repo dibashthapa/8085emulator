@@ -132,14 +132,14 @@ mod tests {
     #[test]
     fn test_mvi() {
         let mut lex = Token::lexer(
-            r#"MVI A,20
+            r#"MVI A,FF
             "#,
         );
         assert_eq!(lex.next(), Some(Ok(Token::OpCode)));
         assert_eq!(lex.slice(), "MVI");
         assert_eq!(lex.next(), Some(Ok(Token::Register)));
         assert_eq!(lex.slice(), "A");
-        assert_eq!(lex.next(), Some(Ok(Token::Number(20))));
+        assert_eq!(lex.next(), Some(Ok(Token::Number(0xFF))));
     }
 
     #[test]

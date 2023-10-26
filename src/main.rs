@@ -9,11 +9,12 @@ mod token;
 
 fn main() {
     let source = r#"
-        MVI A, 20
-        INR A
+        MVI A, FF
+        MVI B, 01
+        ADD B
         "#;
     let instructions = parse_instructions(source);
     let mut cpu = Cpu::new(instructions);
     cpu.run();
-    println!("accumulator is {}", cpu.accumulator);
+    cpu.print();
 }

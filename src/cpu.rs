@@ -72,7 +72,7 @@ impl FlagRegisters {
 #[derive(Clone, Debug)]
 pub struct Cpu {
     pub ip: usize,
-    stack: Vec<i32>,
+    sp: usize,
     program: Vec<InstructionSet>,
     pub accumulator: u8,
     pub b: u8,
@@ -89,7 +89,7 @@ impl Cpu {
     pub fn new(program: Vec<InstructionSet>) -> Self {
         Self {
             ip: 0,
-            stack: vec![],
+            sp: 0,
             program,
             accumulator: 0,
             b: 0,
@@ -101,6 +101,47 @@ impl Cpu {
             memory: Memory::new(),
             flags: FlagRegisters::new(),
         }
+    }
+
+    pub fn print(&self) {
+        println!(
+            r#" 
+
+|-------------|-------------|
+|accumulator: {:<4x}        | 
+|-------------|-------------|
+|b: {:<4x}      | c: {:<4x} | 
+|-------------|-------------|
+|d: {:<4x}      | e: {:<4x} | 
+|-------------|-------------|
+|h: {:<4x}      | l: {:<4x} | 
+|-------------|-------------|
+|stack pointer:  {:<4x}     | 
+|-------------|-------------|
+| PC : {:<4x}                |
+|-------------|-------------|
+| Sign: {:<4}  | Zero: {:<4} |
+|-------------|-------------|
+| Aux: {:<4}   | Parity: {:<4}|
+|-------------|-------------|
+| Carry: {:<4} |             |
+|-------------|-------------|
+        "#,
+            self.accumulator,
+            self.b,
+            self.c,
+            self.d,
+            self.e,
+            self.h,
+            self.l,
+            self.sp,
+            self.ip,
+            i8::from(self.flags.sign),
+            i8::from(self.flags.zero),
+            i8::from(self.flags.auxiliary_carry),
+            i8::from(self.flags.parity),
+            i8::from(self.flags.carry),
+        );
     }
 
     pub fn fetch(&self) -> &InstructionSet {
@@ -137,7 +178,7 @@ impl Cpu {
                         self.memory.write(address as usize, self.accumulator);
                     }
                     _ => {}
-                }
+                },
                 InstructionSet::Ldax(registers) => match registers {
                     Registers::RegB => {
                         let address = u16::from_be_bytes([self.b, self.c]);
@@ -262,7 +303,11 @@ impl Cpu {
                 }
                 InstructionSet::Add(register) => match register {
                     Registers::RegB => {
-                        self.accumulator = self.accumulator + self.b;
+                        if let Some(result) = self.accumulator.checked_add(self.b) {
+                            self.accumulator = result;
+                        } else {
+                            self.flags.carry = true;
+                        }
                     }
                     Registers::RegC => {
                         self.accumulator = self.accumulator + self.c;
@@ -405,12 +450,12 @@ mod test {
     #[test]
     fn test_mvi() {
         let mut cpu = Cpu::new(vec![
-            InstructionSet::Mvi(Registers::RegA, 42),
+            InstructionSet::Mvi(Registers::RegA, 0xFF),
             InstructionSet::Sta(0x0700),
         ]);
 
         cpu.run();
-        assert_eq!(cpu.memory.read(0x0700), 42);
+        assert_eq!(cpu.memory.read(0x0700), 0xFF);
     }
 
     #[test]
@@ -486,6 +531,18 @@ mod test {
         ]);
         cpu.run();
         assert_eq!(cpu.accumulator, 0xF0);
+    }
+
+    #[test]
+    fn test_add_overflow() {
+        let mut cpu = Cpu::new(vec![
+            InstructionSet::Mvi(Registers::RegA, 0xFF),
+            InstructionSet::Mvi(Registers::RegB, 0x01),
+            InstructionSet::Add(Registers::RegB),
+        ]);
+        cpu.run();
+        assert_eq!(cpu.accumulator, 0xFF);
+        assert_eq!(cpu.flags.carry, true);
     }
 
     #[test]

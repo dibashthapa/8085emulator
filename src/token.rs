@@ -27,7 +27,7 @@ pub enum Token {
     #[regex(r";.*", logos::skip)]
     Comment,
 
-    #[regex(r"[0-9]{2}", |lex| lex.slice().parse::<u8>().unwrap())]
+    #[regex(r"[0-9A-F]{2}", |lex| u8::from_str_radix(lex.slice(), 16).unwrap())]
     Number(u8),
 
     #[regex(r"[0-9]{4}", |lex| lex.slice().parse::<u16>().unwrap())]
