@@ -5,8 +5,7 @@ pub enum InstructionSet {
     Add(Registers),
     Sub(Registers),
     Adi(u8),
-    Push(Registers),
-    Pop(Registers),
+    Adc(Registers),
     Mov(Registers, Registers),
     Mvi(Registers, u8),
     Sta(u16),
@@ -103,10 +102,13 @@ impl Cpu {
         }
     }
 
+    pub fn print_memory(&self) {
+        self.memory.print();
+    }
+
     pub fn print(&self) {
         println!(
             r#" 
-
 |-------------|-------------|
 |accumulator: {:<4x}        | 
 |-------------|-------------|
@@ -155,6 +157,20 @@ impl Cpu {
     pub fn run(&mut self) {
         while self.ip < self.program.len() {
             match self.fetch() {
+                InstructionSet::Adc(register) => {
+                    self.accumulator = self.accumulator + 
+                        match register {
+                            Registers::RegB => self.b,
+                            Registers::RegC => self.c,
+                            Registers::RegD => self.d,
+                            Registers::RegE => self.e,
+                            Registers::RegH => self.h,
+                            Registers::RegL => self.l,
+                            Registers::RegA => self.accumulator,
+                        }
+                        + if self.flags.carry { 1 } else { 0 };
+                }
+
                 InstructionSet::Xchg => {
                     let temp = self.d;
                     self.d = self.h;
@@ -435,7 +451,6 @@ impl Cpu {
                 },
 
                 InstructionSet::Hlt => break,
-                _ => {}
             }
             self.advance()
         }

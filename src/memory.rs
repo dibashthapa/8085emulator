@@ -1,4 +1,4 @@
-const MEMORY_SIZE: usize = 0x10000;
+const MEMORY_SIZE: usize = 0xFFFF;
 
 #[derive(Clone, Debug)]
 pub struct Memory {
@@ -20,5 +20,16 @@ impl Memory {
 
     pub fn read(&self, address: usize) -> u8 {
         self.addresses[address]
+    }
+
+    pub fn print(&self) {
+        for (i, address) in self.addresses.iter().enumerate() {
+            if *address != 0 {
+                println!("----------------");
+                print!("| ");
+                println!("{:#06x}: {:#04x} |", i, address);
+            }
+        }
+                println!("----------------");
     }
 }

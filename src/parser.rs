@@ -112,8 +112,14 @@ pub fn parse_instructions(code: &str) -> Vec<InstructionSet> {
                     "XCHG" => {
                         instructions.push(InstructionSet::Xchg);
                     }
+                    "ADC" => {
+                        if let Some(Ok(Token::Register)) = lexer.next() {
+                            let register = Registers::from(lexer.slice());
+                            instructions.push(InstructionSet::Adc(register));
+                        }
+                    }
                     _ => {
-                        panic!("unkown opcode");
+                    unimplemented!("{}", format!("Invalid opcode: {}", lexer.slice()));
                     }
                 },
                 _ => {}
@@ -140,7 +146,7 @@ mod tests {
         assert_eq!(lex.next(), Some(Ok(Token::Register)));
         assert_eq!(lex.slice(), "A");
         assert_eq!(lex.next(), Some(Ok(Token::Number(0xFF))));
-    }
+    }   
 
     #[test]
     fn test_mov() {
@@ -163,7 +169,7 @@ mod tests {
         );
         assert_eq!(lex.next(), Some(Ok(Token::OpCode)));
         assert_eq!(lex.slice(), "LXI");
-        assert_eq!(lex.next(), Some(Ok(Token::Address(2000))));
+        assert_eq!(lex.next(), Some(Ok(Token::Address(0x2000))));
     }
 
     #[test]
