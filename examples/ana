@@ -1,0 +1,4 @@
+MVI A, 99 ; Load 99 into the accumulator
+MVI B, 98 ; Load 98 into the B register
+ANA B     ; AND the contents of the accumulator with the contents of the B register
+HLT       ; Halt the program

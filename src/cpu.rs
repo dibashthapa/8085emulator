@@ -20,6 +20,7 @@ pub enum InstructionSet {
     Inr(Registers),
     Dcr(Registers),
     Dad(Registers),
+    Ana(Registers),
     Hlt,
 }
 
@@ -158,27 +159,24 @@ impl Cpu {
     pub fn run(&mut self) {
         while self.ip < self.program.len() {
             match self.fetch() {
-                InstructionSet::Dad(register) => {
-                    match register {
-                        Registers::RegB => {
-                            self.h = self.h.wrapping_add(self.b);
-                            self.l = self.l.wrapping_add(self.c);
-                        }
-                        Registers::RegD => {
-                            self.h = self.h.wrapping_add(self.d);
-                            self.l = self.l.wrapping_add(self.e);
-                        }
-                        Registers::RegH => {
-                            self.h = self.h.wrapping_add(self.h);
-                            self.l = self.l.wrapping_add(self.l);
-                        },
-                        _ => {}
+                InstructionSet::Dad(register) => match register {
+                    Registers::RegB => {
+                        self.h = self.h.wrapping_add(self.b);
+                        self.l = self.l.wrapping_add(self.c);
                     }
-
-                }
+                    Registers::RegD => {
+                        self.h = self.h.wrapping_add(self.d);
+                        self.l = self.l.wrapping_add(self.e);
+                    }
+                    Registers::RegH => {
+                        self.h = self.h.wrapping_add(self.h);
+                        self.l = self.l.wrapping_add(self.l);
+                    }
+                    _ => {}
+                },
                 InstructionSet::Adc(register) => {
-                    self.accumulator = self.accumulator + 
-                        match register {
+                    self.accumulator = self.accumulator
+                        + match register {
                             Registers::RegB => self.b,
                             Registers::RegC => self.c,
                             Registers::RegD => self.d,
@@ -469,7 +467,31 @@ impl Cpu {
                     }
                 },
 
+                InstructionSet::Ana(register) => match register {
+                    Registers::RegB => {
+                        self.accumulator &= self.b;
+                    }
+                    Registers::RegC => {
+                        self.accumulator &= self.c;
+                    }
+                    Registers::RegD => {
+                        self.accumulator &= self.d;
+                    }
+                    Registers::RegE => {
+                        self.accumulator &= self.e;
+                    }
+                    Registers::RegH => {
+                        self.accumulator &= self.h;
+                    }
+                    Registers::RegL => {
+                        self.accumulator &= self.l;
+                    }
+                    Registers::RegA => {
+                        self.accumulator &= self.accumulator;
+                    }
+                },
                 InstructionSet::Hlt => break,
+
             }
             self.advance()
         }
@@ -612,5 +634,27 @@ mod test {
         cpu.run();
         assert_eq!(cpu.d, 20);
         assert_eq!(cpu.e, 22);
+    }
+
+    #[test]
+    fn test_ana_b() {
+        let mut cpu = Cpu::new(vec![
+            InstructionSet::Mvi(Registers::RegA, 0b11001100),
+            InstructionSet::Mvi(Registers::RegB, 0b10101010),
+            InstructionSet::Ana(Registers::RegB),
+        ]);
+        cpu.run();
+        assert_eq!(cpu.accumulator, 0b10001000);
+    }
+
+    #[test]
+    fn test_ana_c() {
+        let mut cpu = Cpu::new(vec![
+            InstructionSet::Mvi(Registers::RegA, 0b11110000),
+            InstructionSet::Mvi(Registers::RegC, 0b11001100),
+            InstructionSet::Ana(Registers::RegC),
+        ]);
+        cpu.run();
+        assert_eq!(cpu.accumulator, 0b11000000);
     }
 }
