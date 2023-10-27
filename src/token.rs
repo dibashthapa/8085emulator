@@ -24,6 +24,7 @@ pub enum Token {
     #[token("SHLD")]
     #[token("DAD")]
     #[token("HLT")]
+    #[token("ANA")]
     OpCode,
 
     #[regex(r"[ABCDEHL]")]
