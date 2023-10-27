@@ -30,7 +30,7 @@ pub enum Token {
     #[regex(r"[ABCDEHL]")]
     Register,
 
-    #[regex(r"[;:].*", logos::skip)]
+    #[regex(r"[;].*", logos::skip)]
     Comment,
 
     #[regex(r"[0-9A-F]{2}", |lex| u8::from_str_radix(lex.slice(), 16).unwrap())]
