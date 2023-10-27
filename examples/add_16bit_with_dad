@@ -1,0 +1,6 @@
+LHLD 2501H  ; "Get 1st 16-bit number"  
+XCHG        ; "Save 1st 16-bit number in DE"  
+LHLD 2503H  ; "Get 2nd 16-bit number in H-L"  
+DAD D       ; "Add DE and HL"  
+SHLD 2505H  ; "Store 16-bit result in memory locations 2505H and 2506H".  
+HLT         ; "Stop" 

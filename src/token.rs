@@ -22,6 +22,7 @@ pub enum Token {
     #[token("XCHG")]
     #[token("LHLD")]
     #[token("SHLD")]
+    #[token("DAD")]
     #[token("HLT")]
     OpCode,
 

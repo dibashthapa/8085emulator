@@ -118,6 +118,12 @@ pub fn parse_instructions(code: &str) -> Vec<InstructionSet> {
                             instructions.push(InstructionSet::Adc(register));
                         }
                     }
+                    "DAD" => {
+                        if let Some(Ok(Token::Register)) = lexer.next() {
+                            let register = Registers::from(lexer.slice());
+                            instructions.push(InstructionSet::Dad(register));
+                        }
+                    }
                     _ => {
                     unimplemented!("{}", format!("Invalid opcode: {}", lexer.slice()));
                     }

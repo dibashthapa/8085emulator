@@ -13,8 +13,15 @@ impl Memory {
     }
 
     pub fn write(&mut self, addr: usize, val: u8) {
-        if addr < MEMORY_SIZE {
+        if addr < MEMORY_SIZE - 1 {
             self.addresses[addr] = val;
+        }
+    }
+
+    pub fn write_word(&mut self, addr: usize, val: u16) {
+        if addr < MEMORY_SIZE - 1 {
+            self.addresses[addr] = (val >> 8) as u8;
+            self.addresses[addr + 1] = val as u8;
         }
     }
 

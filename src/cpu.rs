@@ -19,6 +19,7 @@ pub enum InstructionSet {
     Shld(u16),
     Inr(Registers),
     Dcr(Registers),
+    Dad(Registers),
     Hlt,
 }
 
@@ -157,6 +158,24 @@ impl Cpu {
     pub fn run(&mut self) {
         while self.ip < self.program.len() {
             match self.fetch() {
+                InstructionSet::Dad(register) => {
+                    match register {
+                        Registers::RegB => {
+                            self.h = self.h.wrapping_add(self.b);
+                            self.l = self.l.wrapping_add(self.c);
+                        }
+                        Registers::RegD => {
+                            self.h = self.h.wrapping_add(self.d);
+                            self.l = self.l.wrapping_add(self.e);
+                        }
+                        Registers::RegH => {
+                            self.h = self.h.wrapping_add(self.h);
+                            self.l = self.l.wrapping_add(self.l);
+                        },
+                        _ => {}
+                    }
+
+                }
                 InstructionSet::Adc(register) => {
                     self.accumulator = self.accumulator + 
                         match register {
@@ -219,7 +238,7 @@ impl Cpu {
                 }
                 InstructionSet::Shld(address) => {
                     let value = u16::from_be_bytes([self.h, self.l]);
-                    self.memory.write(*address as usize, value as u8);
+                    self.memory.write_word(*address as usize, value);
                 }
                 InstructionSet::Dcr(register) => match register {
                     Registers::RegA => {
