@@ -38,7 +38,7 @@ I shouldn't have skipped my digital logic classes.
 
 Contributions are always welcome!
 
-See `contributing.md` for ways to get started.
+See the [Contribution](CONTRIBUTING.md) for ways to get started.
 
 
 
