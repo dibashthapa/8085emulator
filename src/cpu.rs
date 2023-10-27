@@ -467,8 +467,6 @@ impl Cpu {
                     }
                 },
 
-                InstructionSet::Hlt => break,
-
                 InstructionSet::Ana(register) => match register {
                     Registers::RegB => {
                         self.accumulator &= self.b;
@@ -492,6 +490,8 @@ impl Cpu {
                         self.accumulator &= self.accumulator;
                     }
                 },
+                InstructionSet::Hlt => break,
+
             }
             self.advance()
         }
