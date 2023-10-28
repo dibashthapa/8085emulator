@@ -1,0 +1,4 @@
+MVI A, 60   ; Load value 0x60 into register A
+MVI C, 70   ; Load value 0x70 into register C
+CMP C         ; Compare the values in A and C
+HLT           ; Halt the program

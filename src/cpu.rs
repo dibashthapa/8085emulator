@@ -22,7 +22,9 @@ pub enum InstructionSet {
     Dad(Registers),
     Ana(Registers),
     Ora(Registers),
+    Cmp(Registers),
     Hlt,
+    Cma,
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -514,6 +516,47 @@ impl Cpu {
                         self.accumulator |= self.accumulator;
                     }
                 },
+                InstructionSet::Cma => {
+                    self.accumulator = !self.accumulator;
+                }
+
+                InstructionSet::Cmp(register) => match register {
+                    Registers::RegB => {
+                        self.flags.zero = self.accumulator == self.b;
+                        self.flags.sign = (self.accumulator.wrapping_sub(self.b) & 0x80) != 0;
+                        self.flags.carry = self.b > self.accumulator;
+                    }
+                    Registers::RegC => {
+                        self.flags.zero = self.accumulator == self.c;
+                        self.flags.sign = (self.accumulator.wrapping_sub(self.c) & 0x80) != 0;
+                        self.flags.carry = self.c > self.accumulator;
+                    }
+                    Registers::RegD => {
+                        self.flags.zero = self.accumulator == self.d;
+                        self.flags.sign = (self.accumulator.wrapping_sub(self.d) & 0x80) != 0;
+                        self.flags.carry = self.d > self.accumulator;
+                    }
+                    Registers::RegE => {
+                        self.flags.zero = self.accumulator == self.e;
+                        self.flags.sign = (self.accumulator.wrapping_sub(self.e) & 0x80) != 0;
+                        self.flags.carry = self.e > self.accumulator;
+                    }
+                    Registers::RegH => {
+                        self.flags.zero = self.accumulator == self.h;
+                        self.flags.sign = (self.accumulator.wrapping_sub(self.h) & 0x80) != 0;
+                        self.flags.carry = self.h > self.accumulator;
+                    }
+                    Registers::RegL => {
+                        self.flags.zero = self.accumulator == self.l;
+                        self.flags.sign = (self.accumulator.wrapping_sub(self.l) & 0x80) != 0;
+                        self.flags.carry = self.l > self.accumulator;
+                    }
+                    Registers::RegA => {
+                        self.flags.zero = true;
+                        self.flags.sign = false;
+                        self.flags.carry = false;
+                    }
+                },
                 InstructionSet::Hlt => break,
             }
             self.advance()
@@ -523,6 +566,8 @@ impl Cpu {
 
 #[cfg(test)]
 mod test {
+    use std::vec;
+
     use super::*;
 
     use super::Registers;
@@ -701,5 +746,67 @@ mod test {
         ]);
         cpu.run();
         assert_eq!(cpu.accumulator, 0b11110011); // 0xC3 | 0xF0 == 0xF3
+    }
+
+    #[test]
+    fn test_cma_case1() {
+        let mut cpu = Cpu::new(vec![
+            InstructionSet::Mvi(Registers::RegA, 0x99),
+            InstructionSet::Cma,
+            InstructionSet::Hlt,
+        ]);
+
+        cpu.run();
+        assert_eq!(cpu.accumulator, 0x66);
+    }
+
+    #[test]
+    fn test_cma_case2() {
+        let mut cpu = Cpu::new(vec![
+            InstructionSet::Mvi(Registers::RegA, 0xA1),
+            InstructionSet::Cma,
+            InstructionSet::Hlt,
+        ]);
+
+        cpu.run();
+        assert_eq!(cpu.accumulator, 0x5E);
+    }
+
+    #[test]
+    fn test_cmp_b() {
+        let mut cpu = Cpu::new(vec![
+            InstructionSet::Mvi(Registers::RegA, 0x60),
+            InstructionSet::Mvi(Registers::RegB, 0x70),
+            InstructionSet::Cmp(Registers::RegB),
+        ]);
+        cpu.run();
+        assert_eq!(cpu.flags.zero, false);
+        assert_eq!(cpu.flags.sign, true);
+        assert_eq!(cpu.flags.carry, true);
+    }
+
+    #[test]
+    fn test_cmp_c() {
+        let mut cpu = Cpu::new(vec![
+            InstructionSet::Mvi(Registers::RegA, 0x60),
+            InstructionSet::Mvi(Registers::RegC, 0x50),
+            InstructionSet::Cmp(Registers::RegC),
+        ]);
+        cpu.run();
+        assert_eq!(cpu.flags.zero, false);
+        assert_eq!(cpu.flags.sign, false);
+        assert_eq!(cpu.flags.carry, false);
+    }
+
+    #[test]
+    fn test_cmp_a() {
+        let mut cpu = Cpu::new(vec![
+            InstructionSet::Mvi(Registers::RegA, 0x40),
+            InstructionSet::Cmp(Registers::RegA),
+        ]);
+        cpu.run();
+        assert_eq!(cpu.flags.zero, true);
+        assert_eq!(cpu.flags.sign, false);
+        assert_eq!(cpu.flags.carry, false);
     }
 }
