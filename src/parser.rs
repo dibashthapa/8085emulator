@@ -1,9 +1,7 @@
 use crate::token::Token;
 use logos::Logos;
 
-
 use crate::cpu::{InstructionSet, Registers};
-
 
 pub fn parse_instructions(code: &str) -> Vec<InstructionSet> {
     let mut lexer = Token::lexer(code);
@@ -48,7 +46,7 @@ pub fn parse_instructions(code: &str) -> Vec<InstructionSet> {
                         }
                     }
                     "LXI" => {
-                        if let Some(Ok(Token::Register)) =  lexer.next() {
+                        if let Some(Ok(Token::Register)) = lexer.next() {
                             let register = Registers::from(lexer.slice());
                             if let Some(Ok(Token::Address(address))) = lexer.next() {
                                 instructions.push(InstructionSet::Lxi(register, address));
@@ -136,8 +134,17 @@ pub fn parse_instructions(code: &str) -> Vec<InstructionSet> {
                             instructions.push(InstructionSet::Ora(register));
                         }
                     }
+                    "CMA" => {
+                        instructions.push(InstructionSet::Cma);
+                    }
+                    "CMP" => {
+                        if let Some(Ok(Token::Register)) = lexer.next() {
+                            let register = Registers::from(lexer.slice());
+                            instructions.push(InstructionSet::Cmp(register));
+                        }
+                    }
                     _ => {
-                    unimplemented!("{}", format!("Invalid opcode: {}", lexer.slice()));
+                        unimplemented!("{}", format!("Invalid opcode: {}", lexer.slice()));
                     }
                 },
                 _ => {}
@@ -164,7 +171,7 @@ mod tests {
         assert_eq!(lex.next(), Some(Ok(Token::Register)));
         assert_eq!(lex.slice(), "A");
         assert_eq!(lex.next(), Some(Ok(Token::Number(0xFF))));
-    }   
+    }
 
     #[test]
     fn test_mov() {
@@ -181,10 +188,8 @@ mod tests {
     }
 
     #[test]
-    fn test_lxi(){
-        let mut lex = Token::lexer(
-            r#"LXI 2000"#,
-        );
+    fn test_lxi() {
+        let mut lex = Token::lexer(r#"LXI 2000"#);
         assert_eq!(lex.next(), Some(Ok(Token::OpCode)));
         assert_eq!(lex.slice(), "LXI");
         assert_eq!(lex.next(), Some(Ok(Token::Address(0x2000))));
