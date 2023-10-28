@@ -691,4 +691,15 @@ mod test {
         cpu.run();
         assert_eq!(cpu.accumulator, 0b11101110);
     }
+
+    #[test]
+    fn test_ora_c() {
+        let mut cpu = Cpu::new(vec![
+            InstructionSet::Mvi(Registers::RegA, 0b11000011),
+            InstructionSet::Mvi(Registers::RegC, 0b11110000),
+            InstructionSet::Ora(Registers::RegC),
+        ]);
+        cpu.run();
+        assert_eq!(cpu.accumulator, 0b11110011); // 0xC3 | 0xF0 == 0xF3
+    }
 }
