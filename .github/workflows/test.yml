@@ -1,22 +1,31 @@
-name: Rust Tests
+name: Rust Checks
 
 on: [push, pull_request]
 
 jobs:
-  build:
+  check:
     runs-on: ubuntu-latest
     steps:
-      - name: Setup Rust
-        uses: actions/setup-rust@v1
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
         with:
-          rust-version: stable
-          token: ${{ secrets.GH_TOKEN }}
+          profile: minimal
+          toolchain: stable
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: check
 
-      - name: Checkout Code
-        uses: actions/checkout@v2
-
-      - name: Build Code
-        run: cargo build --verbose
-
-      - name: Run Tests
-        run: cargo test
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --verbose
