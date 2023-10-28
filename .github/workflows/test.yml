@@ -1,0 +1,22 @@
+name: Rust Tests
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Rust
+        uses: actions/setup-rust@v1
+        with:
+          rust-version: stable
+          token: ${{ secrets.GH_TOKEN }}
+
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Build Code
+        run: cargo build --verbose
+
+      - name: Run Tests
+        run: cargo test
