@@ -37,6 +37,6 @@ impl Memory {
                 println!("{:#06x}: {:#04x} |", i, address);
             }
         }
-                println!("----------------");
+        println!("----------------");
     }
 }
