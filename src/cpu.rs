@@ -21,6 +21,7 @@ pub enum InstructionSet {
     Dcr(Registers),
     Dad(Registers),
     Ana(Registers),
+    Ora(Registers),
     Hlt,
 }
 
@@ -490,8 +491,30 @@ impl Cpu {
                         self.accumulator &= self.accumulator;
                     }
                 },
+                InstructionSet::Ora(register) => match register {
+                    Registers::RegB => {
+                        self.accumulator |= self.b;
+                    }
+                    Registers::RegC => {
+                        self.accumulator |= self.c;
+                    }
+                    Registers::RegD => {
+                        self.accumulator |= self.d;
+                    }
+                    Registers::RegE => {
+                        self.accumulator |= self.e;
+                    }
+                    Registers::RegH => {
+                        self.accumulator |= self.h;
+                    }
+                    Registers::RegL => {
+                        self.accumulator |= self.l;
+                    }
+                    Registers::RegA => {
+                        self.accumulator |= self.accumulator;
+                    }
+                },
                 InstructionSet::Hlt => break,
-
             }
             self.advance()
         }
@@ -656,5 +679,27 @@ mod test {
         ]);
         cpu.run();
         assert_eq!(cpu.accumulator, 0b11000000);
+    }
+
+    #[test]
+    fn test_ora_b() {
+        let mut cpu = Cpu::new(vec![
+            InstructionSet::Mvi(Registers::RegA, 0b11001100),
+            InstructionSet::Mvi(Registers::RegB, 0b10101010),
+            InstructionSet::Ora(Registers::RegB),
+        ]);
+        cpu.run();
+        assert_eq!(cpu.accumulator, 0b11101110);
+    }
+
+    #[test]
+    fn test_ora_c() {
+        let mut cpu = Cpu::new(vec![
+            InstructionSet::Mvi(Registers::RegA, 0b11000011),
+            InstructionSet::Mvi(Registers::RegC, 0b11110000),
+            InstructionSet::Ora(Registers::RegC),
+        ]);
+        cpu.run();
+        assert_eq!(cpu.accumulator, 0b11110011); // 0xC3 | 0xF0 == 0xF3
     }
 }

@@ -130,6 +130,12 @@ pub fn parse_instructions(code: &str) -> Vec<InstructionSet> {
                             instructions.push(InstructionSet::Ana(register));
                         }
                     }
+                    "ORA" => {
+                        if let Some(Ok(Token::Register)) = lexer.next() {
+                            let register = Registers::from(lexer.slice());
+                            instructions.push(InstructionSet::Ora(register));
+                        }
+                    }
                     _ => {
                     unimplemented!("{}", format!("Invalid opcode: {}", lexer.slice()));
                     }
