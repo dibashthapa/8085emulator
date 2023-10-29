@@ -23,6 +23,7 @@ pub enum InstructionSet {
     Ana(Registers),
     Ora(Registers),
     Cmp(Registers),
+    Daa,
     Hlt,
     Cma,
 }
@@ -557,6 +558,18 @@ impl Cpu {
                         self.flags.carry = false;
                     }
                 },
+                InstructionSet::Daa => {
+                    let mut result = self.accumulator;
+                    if self.flags.auxiliary_carry || (result & 0x0F) > 9 {
+                        result = result.wrapping_add(0x06);
+                    }
+                    self.flags.auxiliary_carry = false;
+                    if self.flags.carry || result > 0x9F {
+                        result = result.wrapping_add(0x60);
+                        self.flags.carry = true;
+                    }
+                    self.accumulator = result;
+                }
                 InstructionSet::Hlt => break,
             }
             self.advance()

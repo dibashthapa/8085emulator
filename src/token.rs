@@ -28,6 +28,7 @@ pub enum Token {
     #[token("ORA")]
     #[token("CMA")]
     #[token("CMP")]
+    #[token("DAA")]
     OpCode,
 
     #[regex(r"[ABCDEHL]")]

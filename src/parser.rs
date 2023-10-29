@@ -143,6 +143,9 @@ pub fn parse_instructions(code: &str) -> Vec<InstructionSet> {
                             instructions.push(InstructionSet::Cmp(register));
                         }
                     }
+                    "DAA" => {
+                        instructions.push(InstructionSet::Daa);
+                    }
                     _ => {
                         unimplemented!("{}", format!("Invalid opcode: {}", lexer.slice()));
                     }

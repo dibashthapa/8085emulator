@@ -1,0 +1,5 @@
+MVI A, 58H
+MVI B, 37H
+SUB B
+DAA
+HLT
