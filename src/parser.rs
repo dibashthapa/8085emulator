@@ -365,6 +365,28 @@ pub fn parse_instructions(code: &str) -> Vec<u8> {
                             instructions.push(high_byte);
                         }
                     }
+                    "DAD" => {
+                        if let Some(Ok(Token::Register)) = lexer.next() {
+                            let register = Registers::from(lexer.slice());
+                            match register {
+                                Registers::RegB => {
+                                    instructions.push(0x09);
+                                }
+                                Registers::RegD => {
+                                    instructions.push(0x19);
+                                }
+                                Registers::RegH => {
+                                    instructions.push(0x29);
+                                }
+                                _ => {
+                                    unimplemented!(
+                                        "{}",
+                                        format!("Invalid opcode: {}", lexer.slice())
+                                    );
+                                }
+                            }
+                        }
+                    }
                     _ => {
                         unimplemented!("{}", format!("Invalid opcode: {}", lexer.slice()));
                     }
@@ -416,4 +438,5 @@ mod tests {
     test_opcode!(test_adc_h, "ADC H", vec![0x8C]);
 
     test_opcode!(test_adc_l, "ADC L", vec![0x8D]);
+    test_opcode!(test_dad_b, "DAD B", vec![0x09]);
 }

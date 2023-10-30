@@ -147,18 +147,21 @@ impl Cpu {
             0x09 => {
                 self.h = self.h.wrapping_add(self.b);
                 self.l = self.l.wrapping_add(self.c);
+                self.pc += 1;
             }
 
             // Dad D
             0x19 => {
                 self.h = self.h.wrapping_add(self.d);
                 self.l = self.l.wrapping_add(self.e);
+                self.pc += 1;
             }
 
             // Dad H
             0x29 => {
                 self.h = self.h.wrapping_add(self.h);
                 self.l = self.l.wrapping_add(self.l);
+                self.pc += 1;
             }
 
             // ADC A
