@@ -1,10 +1,8 @@
 {
-    "rust-analyzer.linkedProjects": [
-        "./Cargo.toml"
-    ],
-    "editor.formatOnSave": true,
-    // Set formatter for rust
-    "[rust]": {
-        "editor.defaultFormatter": "rust-lang.rust-analyzer"
-    },
+  "rust-analyzer.linkedProjects": ["./Cargo.toml", "./Cargo.toml"],
+  "editor.formatOnSave": true,
+  // Set formatter for rust
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer"
+  }
 }

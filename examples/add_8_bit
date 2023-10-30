@@ -1,3 +1,4 @@
-MVI A, 99
-MVI B, 39
+MVI B, 30
+MVI A, 20
 ADD B
+HLT

@@ -1,31 +1,4 @@
-use crate::memory::Memory;
-
-#[derive(PartialEq, Clone, Debug)]
-pub enum InstructionSet {
-    Add(Registers),
-    Sub(Registers),
-    Adi(u8),
-    Adc(Registers),
-    Mov(Registers, Registers),
-    Mvi(Registers, u8),
-    Sta(u16),
-    Lxi(Registers, u16),
-    Lda(u16),
-    Xchg,
-    Ldax(Registers),
-    Stax(Registers),
-    Inx(Registers),
-    Lhld(u16),
-    Shld(u16),
-    Inr(Registers),
-    Dcr(Registers),
-    Dad(Registers),
-    Ana(Registers),
-    Ora(Registers),
-    Cmp(Registers),
-    Hlt,
-    Cma,
-}
+const MEMORY_SIZE: usize = 0xFFFF;
 
 #[derive(PartialEq, Clone, Debug)]
 pub enum Registers {
@@ -75,9 +48,8 @@ impl FlagRegisters {
 
 #[derive(Clone, Debug)]
 pub struct Cpu {
-    pub ip: usize,
+    pub pc: u16,
     sp: usize,
-    program: Vec<InstructionSet>,
     pub accumulator: u8,
     pub b: u8,
     pub c: u8,
@@ -85,16 +57,15 @@ pub struct Cpu {
     pub e: u8,
     pub h: u8,
     pub l: u8,
-    pub memory: Memory,
+    pub memory: [u8; MEMORY_SIZE],
     flags: FlagRegisters,
 }
 
 impl Cpu {
-    pub fn new(program: Vec<InstructionSet>) -> Self {
+    pub fn new() -> Self {
         Self {
-            ip: 0,
+            pc: 0,
             sp: 0,
-            program,
             accumulator: 0,
             b: 0,
             c: 0,
@@ -102,15 +73,29 @@ impl Cpu {
             e: 0,
             h: 0,
             l: 0,
-            memory: Memory::new(),
+            memory: [0; MEMORY_SIZE],
             flags: FlagRegisters::new(),
         }
     }
 
     pub fn print_memory(&self) {
-        self.memory.print();
+        for (i, address) in self.memory.iter().enumerate() {
+            if *address != 0 {
+                println!("----------------");
+                print!("| ");
+                println!("{:#06x}: {:#04x} |", i, address);
+            }
+        }
+        println!("----------------");
     }
 
+    pub fn write_memory(&mut self, address: usize, value: u8) {
+        self.memory[address] = value;
+    }
+
+    pub fn read_memory(&self, address: usize) -> u8 {
+        self.memory[address]
+    }
     pub fn print(&self) {
         println!(
             r#" 
@@ -142,7 +127,7 @@ impl Cpu {
             self.h,
             self.l,
             self.sp,
-            self.ip,
+            self.pc,
             i8::from(self.flags.sign),
             i8::from(self.flags.zero),
             i8::from(self.flags.auxiliary_carry),
@@ -151,662 +136,754 @@ impl Cpu {
         );
     }
 
-    pub fn fetch(&self) -> &InstructionSet {
-        &self.program[self.ip]
+    pub fn fetch(&mut self) -> u8 {
+        let instruction = self.memory[self.pc as usize];
+        instruction
     }
 
-    fn advance(&mut self) {
-        self.ip += 1;
-    }
-
-    pub fn run(&mut self) {
-        while self.ip < self.program.len() {
-            match self.fetch() {
-                InstructionSet::Dad(register) => match register {
-                    Registers::RegB => {
-                        self.h = self.h.wrapping_add(self.b);
-                        self.l = self.l.wrapping_add(self.c);
-                    }
-                    Registers::RegD => {
-                        self.h = self.h.wrapping_add(self.d);
-                        self.l = self.l.wrapping_add(self.e);
-                    }
-                    Registers::RegH => {
-                        self.h = self.h.wrapping_add(self.h);
-                        self.l = self.l.wrapping_add(self.l);
-                    }
-                    _ => {}
-                },
-                InstructionSet::Adc(register) => {
-                    self.accumulator = self.accumulator
-                        + match register {
-                            Registers::RegB => self.b,
-                            Registers::RegC => self.c,
-                            Registers::RegD => self.d,
-                            Registers::RegE => self.e,
-                            Registers::RegH => self.h,
-                            Registers::RegL => self.l,
-                            Registers::RegA => self.accumulator,
-                        }
-                        + if self.flags.carry { 1 } else { 0 };
-                }
-
-                InstructionSet::Xchg => {
-                    let temp = self.d;
-                    self.d = self.h;
-                    self.h = temp;
-
-                    let temp = self.e;
-                    self.e = self.l;
-                    self.l = temp;
-                }
-                InstructionSet::Stax(registers) => match registers {
-                    Registers::RegB => {
-                        let address = u16::from_be_bytes([self.b, self.c]);
-                        self.memory.write(address as usize, self.accumulator);
-                    }
-                    Registers::RegD => {
-                        let address = u16::from_be_bytes([self.d, self.e]);
-                        self.memory.write(address as usize, self.accumulator);
-                    }
-                    Registers::RegH => {
-                        let address = u16::from_be_bytes([self.h, self.l]);
-                        self.memory.write(address as usize, self.accumulator);
-                    }
-                    _ => {}
-                },
-                InstructionSet::Ldax(registers) => match registers {
-                    Registers::RegB => {
-                        let address = u16::from_be_bytes([self.b, self.c]);
-                        self.accumulator = self.memory.read(address as usize);
-                    }
-                    Registers::RegD => {
-                        let address = u16::from_be_bytes([self.d, self.e]);
-                        self.accumulator = self.memory.read(address as usize);
-                    }
-                    Registers::RegH => {
-                        let address = u16::from_be_bytes([self.h, self.l]);
-                        self.accumulator = self.memory.read(address as usize);
-                    }
-                    _ => {}
-                },
-
-                InstructionSet::Lhld(address) => {
-                    let low_byte = self.memory.read(*address as usize);
-                    let high_byte = self.memory.read((*address + 1) as usize);
-                    self.l = low_byte;
-                    self.h = high_byte;
-                }
-                InstructionSet::Shld(address) => {
-                    let value = u16::from_be_bytes([self.h, self.l]);
-                    self.memory.write_word(*address as usize, value);
-                }
-                InstructionSet::Dcr(register) => match register {
-                    Registers::RegA => {
-                        self.accumulator = self.accumulator.wrapping_sub(1);
-                    }
-                    Registers::RegB => {
-                        self.b = self.b.wrapping_sub(1);
-                    }
-                    Registers::RegC => {
-                        self.c = self.c.wrapping_sub(1);
-                    }
-                    Registers::RegD => {
-                        self.d = self.d.wrapping_sub(1);
-                    }
-                    Registers::RegE => {
-                        self.e = self.e.wrapping_sub(1);
-                    }
-                    Registers::RegH => {
-                        self.h = self.h.wrapping_sub(1);
-                    }
-                    Registers::RegL => {
-                        self.l = self.l.wrapping_sub(1);
-                    }
-                },
-
-                InstructionSet::Inr(register) => match register {
-                    Registers::RegA => {
-                        self.accumulator = self.accumulator.wrapping_add(1);
-                    }
-                    Registers::RegB => {
-                        self.b = self.b.wrapping_add(1);
-                    }
-                    Registers::RegC => {
-                        self.c = self.c.wrapping_add(1);
-                    }
-                    Registers::RegD => {
-                        self.d = self.d.wrapping_add(1);
-                    }
-                    Registers::RegE => {
-                        self.e = self.e.wrapping_add(1);
-                    }
-                    Registers::RegH => {
-                        self.h = self.h.wrapping_add(1);
-                    }
-                    Registers::RegL => {
-                        self.l = self.l.wrapping_add(1);
-                    }
-                },
-
-                InstructionSet::Inx(register) => match register {
-                    Registers::RegB => {
-                        let address = u16::from_be_bytes([self.b, self.c]);
-                        let new_address = address.wrapping_add(1);
-                        self.b = (new_address >> 8) as u8;
-                        self.c = new_address as u8;
-                    }
-                    Registers::RegD => {
-                        let address = u16::from_be_bytes([self.d, self.e]);
-                        let new_address = address.wrapping_add(1);
-                        self.d = (new_address >> 8) as u8;
-                        self.e = new_address as u8;
-                    }
-                    Registers::RegH => {
-                        let address = u16::from_be_bytes([self.h, self.l]);
-                        let new_address = address.wrapping_add(1);
-                        self.h = (new_address >> 8) as u8;
-                        self.l = new_address as u8;
-                    }
-                    _ => {}
-                },
-                InstructionSet::Lda(address) => {
-                    self.accumulator = self.memory.read(*address as usize);
-                }
-                InstructionSet::Sub(register) => match register {
-                    Registers::RegB => self.accumulator = self.accumulator - self.b,
-                    Registers::RegC => {
-                        self.accumulator = self.accumulator - self.c;
-                    }
-                    Registers::RegD => {
-                        self.accumulator = self.accumulator - self.d;
-                    }
-                    Registers::RegE => {
-                        self.accumulator = self.accumulator - self.e;
-                    }
-                    Registers::RegH => {
-                        self.accumulator = self.accumulator - self.h;
-                    }
-                    Registers::RegL => {
-                        self.accumulator = self.accumulator - self.l;
-                    }
-                    Registers::RegA => {
-                        self.accumulator = self.accumulator - self.accumulator;
-                    }
-                },
-                InstructionSet::Adi(value) => {
-                    self.accumulator = self.accumulator + *value;
-                }
-                InstructionSet::Add(register) => match register {
-                    Registers::RegB => {
-                        if let Some(result) = self.accumulator.checked_add(self.b) {
-                            self.accumulator = result;
-                        } else {
-                            self.flags.carry = true;
-                        }
-                    }
-                    Registers::RegC => {
-                        self.accumulator = self.accumulator + self.c;
-                    }
-                    Registers::RegD => {
-                        self.accumulator = self.accumulator + self.d;
-                    }
-                    Registers::RegE => {
-                        self.accumulator = self.accumulator + self.e;
-                    }
-                    Registers::RegH => {
-                        self.accumulator = self.accumulator + self.h;
-                    }
-                    Registers::RegL => {
-                        self.accumulator = self.accumulator + self.l;
-                    }
-                    Registers::RegA => {
-                        self.accumulator = self.accumulator + self.accumulator;
-                    }
-                },
-                InstructionSet::Lxi(rpair, value) => match rpair {
-                    Registers::RegB => {
-                        let high_byte: u8 = ((value & 0xFF00) >> 8) as u8;
-                        let low_byte: u8 = (value & 0x00FF) as u8;
-                        self.b = high_byte;
-                        self.c = low_byte;
-                    }
-                    Registers::RegD => {
-                        let high_byte: u8 = ((value & 0xFF00) >> 8) as u8;
-                        let low_byte: u8 = (value & 0x00FF) as u8;
-                        self.d = high_byte;
-                        self.e = low_byte;
-                    }
-                    Registers::RegH => {
-                        let high_byte: u8 = ((value & 0xFF00) >> 8) as u8;
-                        let low_byte: u8 = (value & 0x00FF) as u8;
-                        self.h = high_byte;
-                        self.l = low_byte;
-                    }
-                    _ => {
-                        eprintln!("{:#?} not supported ", rpair);
-                    }
-                },
-                InstructionSet::Mov(destination, source) => match (destination, source) {
-                    (Registers::RegB, Registers::RegA) => {
-                        self.b = self.accumulator;
-                    }
-                    (Registers::RegC, Registers::RegA) => {
-                        self.c = self.accumulator;
-                    }
-                    (Registers::RegD, Registers::RegA) => {
-                        self.d = self.accumulator;
-                    }
-                    (Registers::RegE, Registers::RegA) => {
-                        self.e = self.accumulator;
-                    }
-                    (Registers::RegH, Registers::RegA) => {
-                        self.h = self.accumulator;
-                    }
-                    (Registers::RegL, Registers::RegA) => {
-                        self.l = self.accumulator;
-                    }
-                    (Registers::RegA, Registers::RegB) => {
-                        self.accumulator = self.b;
-                    }
-                    (Registers::RegA, Registers::RegC) => {
-                        self.accumulator = self.c;
-                    }
-                    (Registers::RegB, Registers::RegC) => {
-                        self.b = self.c;
-                    }
-                    (Registers::RegD, Registers::RegC) => {
-                        self.d = self.c;
-                    }
-                    (Registers::RegE, Registers::RegC) => {
-                        self.e = self.c;
-                    }
-                    (Registers::RegH, Registers::RegC) => {
-                        self.h = self.c;
-                    }
-                    (Registers::RegL, Registers::RegC) => {
-                        self.l = self.c;
-                    }
-                    (Registers::RegA, Registers::RegD) => {
-                        self.accumulator = self.d;
-                    }
-                    (Registers::RegA, Registers::RegE) => {
-                        self.accumulator = self.e;
-                    }
-                    (Registers::RegA, Registers::RegH) => {
-                        self.accumulator = self.h;
-                    }
-                    (Registers::RegA, Registers::RegL) => {
-                        self.accumulator = self.l;
-                    }
-                    _ => {
-                        println!("Unhandled");
-                    }
-                },
-                InstructionSet::Sta(address) => {
-                    self.memory.write(*address as usize, self.accumulator);
-                }
-                InstructionSet::Mvi(register, value) => match register {
-                    Registers::RegA => {
-                        self.accumulator = *value;
-                    }
-                    Registers::RegB => {
-                        self.b = *value;
-                    }
-                    Registers::RegC => {
-                        self.c = *value;
-                    }
-                    Registers::RegD => {
-                        self.d = *value;
-                    }
-                    Registers::RegE => {
-                        self.e = *value;
-                    }
-                    Registers::RegH => {
-                        self.h = *value;
-                    }
-                    Registers::RegL => {
-                        self.l = *value;
-                    }
-                },
-
-                InstructionSet::Ana(register) => match register {
-                    Registers::RegB => {
-                        self.accumulator &= self.b;
-                    }
-                    Registers::RegC => {
-                        self.accumulator &= self.c;
-                    }
-                    Registers::RegD => {
-                        self.accumulator &= self.d;
-                    }
-                    Registers::RegE => {
-                        self.accumulator &= self.e;
-                    }
-                    Registers::RegH => {
-                        self.accumulator &= self.h;
-                    }
-                    Registers::RegL => {
-                        self.accumulator &= self.l;
-                    }
-                    Registers::RegA => {
-                        self.accumulator &= self.accumulator;
-                    }
-                },
-                InstructionSet::Ora(register) => match register {
-                    Registers::RegB => {
-                        self.accumulator |= self.b;
-                    }
-                    Registers::RegC => {
-                        self.accumulator |= self.c;
-                    }
-                    Registers::RegD => {
-                        self.accumulator |= self.d;
-                    }
-                    Registers::RegE => {
-                        self.accumulator |= self.e;
-                    }
-                    Registers::RegH => {
-                        self.accumulator |= self.h;
-                    }
-                    Registers::RegL => {
-                        self.accumulator |= self.l;
-                    }
-                    Registers::RegA => {
-                        self.accumulator |= self.accumulator;
-                    }
-                },
-                InstructionSet::Cma => {
-                    self.accumulator = !self.accumulator;
-                }
-
-                InstructionSet::Cmp(register) => match register {
-                    Registers::RegB => {
-                        self.flags.zero = self.accumulator == self.b;
-                        self.flags.sign = (self.accumulator.wrapping_sub(self.b) & 0x80) != 0;
-                        self.flags.carry = self.b > self.accumulator;
-                    }
-                    Registers::RegC => {
-                        self.flags.zero = self.accumulator == self.c;
-                        self.flags.sign = (self.accumulator.wrapping_sub(self.c) & 0x80) != 0;
-                        self.flags.carry = self.c > self.accumulator;
-                    }
-                    Registers::RegD => {
-                        self.flags.zero = self.accumulator == self.d;
-                        self.flags.sign = (self.accumulator.wrapping_sub(self.d) & 0x80) != 0;
-                        self.flags.carry = self.d > self.accumulator;
-                    }
-                    Registers::RegE => {
-                        self.flags.zero = self.accumulator == self.e;
-                        self.flags.sign = (self.accumulator.wrapping_sub(self.e) & 0x80) != 0;
-                        self.flags.carry = self.e > self.accumulator;
-                    }
-                    Registers::RegH => {
-                        self.flags.zero = self.accumulator == self.h;
-                        self.flags.sign = (self.accumulator.wrapping_sub(self.h) & 0x80) != 0;
-                        self.flags.carry = self.h > self.accumulator;
-                    }
-                    Registers::RegL => {
-                        self.flags.zero = self.accumulator == self.l;
-                        self.flags.sign = (self.accumulator.wrapping_sub(self.l) & 0x80) != 0;
-                        self.flags.carry = self.l > self.accumulator;
-                    }
-                    Registers::RegA => {
-                        self.flags.zero = true;
-                        self.flags.sign = false;
-                        self.flags.carry = false;
-                    }
-                },
-                InstructionSet::Hlt => break,
+    pub fn eval(&mut self) -> Option<u16> {
+        match self.memory[self.pc as usize] {
+            // Dad B
+            0x09 => {
+                self.h = self.h.wrapping_add(self.b);
+                self.l = self.l.wrapping_add(self.c);
             }
-            self.advance()
+
+            // Dad D
+            0x19 => {
+                self.h = self.h.wrapping_add(self.d);
+                self.l = self.l.wrapping_add(self.e);
+            }
+
+            // Dad H
+            0x29 => {
+                self.h = self.h.wrapping_add(self.h);
+                self.l = self.l.wrapping_add(self.l);
+            }
+
+            // ADC A
+            0xC6 => {
+                self.accumulator =
+                    self.accumulator + self.accumulator + if self.flags.carry { 1 } else { 0 };
+            }
+
+            // ADC B
+            0x8F => {
+                self.accumulator = self.accumulator + self.b + if self.flags.carry { 1 } else { 0 };
+            }
+
+            // ADC C
+            0x88 => {
+                self.accumulator = self.accumulator + self.c + if self.flags.carry { 1 } else { 0 };
+            }
+
+            // ADC D
+            0x89 => {
+                self.accumulator = self.accumulator + self.d + if self.flags.carry { 1 } else { 0 };
+            }
+
+            // ADC E
+            0x8B => {
+                self.accumulator = self.accumulator + self.e + if self.flags.carry { 1 } else { 0 };
+            }
+
+            // ADC H
+            0x8C => {
+                self.accumulator = self.accumulator + self.h + if self.flags.carry { 1 } else { 0 };
+                self.pc += 1;
+            }
+
+            // ADC L
+            0x8D => {
+                self.accumulator = self.accumulator + self.l + if self.flags.carry { 1 } else { 0 };
+            }
+
+            // XCHG
+            0xEB => {
+                let temp = self.d;
+                self.d = self.h;
+                self.h = temp;
+
+                let temp = self.e;
+                self.e = self.l;
+                self.l = temp;
+                self.pc += 1;
+            }
+
+            // STAX B
+            0x02 => {
+                let address = u16::from_be_bytes([self.b, self.c]);
+                self.write_memory(address as usize, self.accumulator);
+            }
+
+            // STAX D
+            0x12 => {
+                let address = u16::from_be_bytes([self.d, self.e]);
+                self.write_memory(address as usize, self.accumulator);
+            }
+
+            // LDAX B
+            0x0A => {
+                let address = u16::from_be_bytes([self.b, self.c]);
+                self.accumulator = self.read_memory(address as usize);
+            }
+
+            // LDAX D
+            0x1A => {
+                let address = u16::from_be_bytes([self.d, self.e]);
+                self.accumulator = self.read_memory(address as usize);
+            }
+
+            // LHLD address
+            0x2A => {
+                self.pc += 1;
+                let low_byte_address = self.fetch();
+                self.pc += 1;
+                let high_byte_address = self.fetch();
+                let address = u16::from_be_bytes([high_byte_address, low_byte_address]);
+                let low_byte = self.read_memory(address as usize);
+                let high_byte = self.read_memory((address + 1) as usize);
+                self.l = low_byte;
+                self.h = high_byte;
+
+                let low_byte = self.read_memory(address as usize);
+                let high_byte = self.read_memory((address + 1) as usize);
+                self.l = low_byte;
+                self.h = high_byte;
+                self.pc += 1;
+            }
+
+            // DCR A
+            0x3D => {
+                self.accumulator = self.accumulator.wrapping_sub(1);
+            }
+
+            // DCR B
+            0x05 => {
+                self.b = self.b.wrapping_sub(1);
+            }
+
+            // DCR C
+            0x15 => {
+                self.c = self.c.wrapping_sub(1);
+            }
+
+            // DCR D
+            0x0D => {
+                self.d = self.d.wrapping_sub(1);
+            }
+
+            // DCR E
+            0x1D => {
+                self.e = self.e.wrapping_sub(1);
+            }
+
+            // DCR H
+            0x25 => {
+                self.h = self.h.wrapping_sub(1);
+            }
+
+            // DCR L
+            0x2D => {
+                self.l = self.l.wrapping_sub(1);
+            }
+
+            // INR A
+            0x3C => {
+                self.accumulator = self.accumulator.wrapping_add(1);
+            }
+
+            // INR B
+            0x04 => {
+                self.b = self.b.wrapping_add(1);
+            }
+
+            // INR C
+            0x0C => {
+                self.c = self.c.wrapping_add(1);
+            }
+
+            // INR D
+            0x14 => {
+                self.d = self.d.wrapping_add(1);
+            }
+
+            // INR E
+            0x1C => {
+                self.e = self.e.wrapping_add(1);
+            }
+
+            // INR H
+            0x24 => {
+                self.h = self.h.wrapping_add(1);
+            }
+
+            // INR L
+            0x2C => {
+                self.l = self.l.wrapping_add(1);
+            }
+
+            // INX B
+            0x03 => {
+                let address = u16::from_be_bytes([self.b, self.c]);
+                let new_address = address.wrapping_add(1);
+                self.b = (new_address >> 8) as u8;
+                self.c = new_address as u8;
+            }
+
+            // INX D
+            0x13 => {
+                let address = u16::from_be_bytes([self.d, self.e]);
+                let new_address = address.wrapping_add(1);
+                self.d = (new_address >> 8) as u8;
+                self.e = new_address as u8;
+            }
+
+            // INX H
+            0x23 => {
+                let address = u16::from_be_bytes([self.h, self.l]);
+                let new_address = address.wrapping_add(1);
+                self.h = (new_address >> 8) as u8;
+                self.l = new_address as u8;
+            }
+
+            // LDA address
+            0x3A => {
+                let address = u16::from_be_bytes([self.fetch(), self.fetch()]);
+                self.accumulator = self.read_memory(address as usize);
+            }
+
+            // SUB A
+            0x97 => {
+                self.accumulator = self.accumulator - self.accumulator;
+            }
+
+            // SUB B
+            0x90 => {
+                self.accumulator = self.accumulator - self.b;
+            }
+
+            // SUB C
+            0x91 => {
+                self.accumulator = self.accumulator - self.c;
+            }
+
+            // SUB D
+            0x92 => {
+                self.accumulator = self.accumulator - self.d;
+            }
+
+            // SUB E
+            0x93 => {
+                self.accumulator = self.accumulator - self.e;
+            }
+
+            // SUB H
+            0x94 => {
+                self.accumulator = self.accumulator - self.h;
+            }
+
+            // SUB L
+            0x95 => {
+                self.accumulator = self.accumulator - self.l;
+            }
+
+            // ADI value
+            // 0xC6 => {
+            //     let value = self.fetch();
+            //     self.accumulator = self.accumulator + value;
+            // }
+
+            // ADD A
+            0x87 => {
+                if let Some(result) = self.accumulator.checked_add(self.accumulator) {
+                    self.accumulator = result;
+                } else {
+                    self.flags.carry = true;
+                }
+            }
+
+            // ADD B
+            0x80 => {
+                if let Some(result) = self.accumulator.checked_add(self.b) {
+                    self.accumulator = result;
+                } else {
+                    self.flags.carry = true;
+                }
+            }
+
+            // ADD C
+            0x81 => {
+                if let Some(result) = self.accumulator.checked_add(self.c) {
+                    self.accumulator = result;
+                } else {
+                    self.flags.carry = true;
+                }
+            }
+
+            // ADD D
+            0x82 => {
+                if let Some(result) = self.accumulator.checked_add(self.d) {
+                    self.accumulator = result;
+                } else {
+                    self.flags.carry = true;
+                }
+            }
+
+            // ADD E
+            0x83 => {
+                if let Some(result) = self.accumulator.checked_add(self.e) {
+                    self.accumulator = result;
+                } else {
+                    self.flags.carry = true;
+                }
+            }
+
+            // ADD H
+            0x84 => {
+                if let Some(result) = self.accumulator.checked_add(self.h) {
+                    self.accumulator = result;
+                } else {
+                    self.flags.carry = true;
+                }
+            }
+
+            // ADD L
+            0x85 => {
+                if let Some(result) = self.accumulator.checked_add(self.l) {
+                    self.accumulator = result;
+                } else {
+                    self.flags.carry = true;
+                }
+                self.pc += 1;
+            }
+
+            // LXI B, value
+            0x01 => {
+                let high_byte = self.fetch();
+                let low_byte = self.fetch();
+                self.b = high_byte;
+                self.c = low_byte;
+            }
+
+            // LXI D, value
+            0x11 => {
+                let high_byte = self.fetch();
+                let low_byte = self.fetch();
+                self.d = high_byte;
+                self.e = low_byte;
+            }
+
+            // LXI H, value
+            0x21 => {
+                let high_byte = self.fetch();
+                let low_byte = self.fetch();
+                self.h = high_byte;
+                self.l = low_byte;
+            }
+
+            // MOV A, A
+            0x7F => {
+                self.accumulator = self.accumulator;
+                self.pc += 1;
+            }
+            // MOV A, B
+            0x78 => {
+                self.accumulator = self.b;
+                self.pc += 1;
+            }
+            // MOV A, C
+            0x79 => {
+                self.accumulator = self.c;
+                self.pc += 1;
+            }
+
+            // MOV A, D
+            0x7A => {
+                self.accumulator = self.d;
+                self.pc += 1;
+            }
+            // MOV A, E
+            0x7B => {
+                self.accumulator = self.e;
+                self.pc += 1;
+            }
+            // MOV A, H
+            0x7C => {
+                self.accumulator = self.h;
+                self.pc += 1;
+            }
+            // MOV A, L
+            0x7D => {
+                self.accumulator = self.l;
+                self.pc += 1;
+            }
+            // MOV B, A
+            0x47 => {
+                self.b = self.accumulator;
+                self.pc += 1;
+            }
+            // MOV B, B
+            0x40 => {
+                self.b = self.b;
+                self.pc += 1;
+            }
+            // MOV B, C
+            0x41 => {
+                self.b = self.c;
+                self.pc += 1;
+            }
+            // MOV B, D
+            0x42 => {
+                self.b = self.d;
+                self.pc += 1;
+            }
+            // MOV B, E
+            0x43 => {
+                self.b = self.e;
+                self.pc += 1;
+            }
+            // MOV B, H
+            0x44 => {
+                self.b = self.h;
+                self.pc += 1;
+            }
+            // MOV B, L
+            0x45 => {
+                self.b = self.l;
+                self.pc += 1;
+            }
+            // MOV C, A
+            0x4F => {
+                self.c = self.accumulator;
+                self.pc += 1;
+            }
+            // MOV C, B
+            0x48 => {
+                self.c = self.b;
+                self.pc += 1;
+            }
+            // MOV C, C
+            0x49 => {
+                self.c = self.c;
+                self.pc += 1;
+            }
+            // MOV C, D
+            0x4A => {
+                self.c = self.d;
+                self.pc += 1;
+            }
+            // MOV C, E
+            0x4B => {
+                self.c = self.e;
+                self.pc += 1;
+            }
+            // MOV C, H
+            0x4C => {
+                self.c = self.h;
+                self.pc += 1;
+            }
+            // MOV C, L
+            0x4D => {
+                self.c = self.l;
+                self.pc += 1;
+            }
+            // MOV D, A
+            0x57 => {
+                self.d = self.accumulator;
+            }
+            // MOV D, B
+            0x50 => {
+                self.d = self.b;
+            }
+            // MOV D, C
+            0x51 => {
+                self.d = self.c;
+            }
+
+            // MOV D, D
+            0x52 => {
+                self.d = self.d;
+            }
+            // MOV D, E
+            0x53 => {
+                self.d = self.e;
+            }
+            // MOV D, H
+            0x54 => {
+                self.d = self.h;
+            }
+            // MOV D, L
+            0x55 => {
+                self.d = self.l;
+            }
+
+            // MOV E, A
+            0x5F => {
+                self.e = self.accumulator;
+            }
+
+            // MOV E, B
+            0x58 => {
+                self.e = self.b;
+            }
+
+            // MOV E, C
+            0x59 => {
+                self.e = self.c;
+            }
+
+            // MOV E, D
+            0x5A => {
+                self.e = self.d;
+            }
+
+            // MOV E, E
+            0x5B => {
+                self.e = self.e;
+            }
+
+            // MOV E, H
+            0x5C => {
+                self.e = self.h;
+            }
+
+            // MOV E, L
+            0x5D => {
+                self.e = self.l;
+            }
+
+            // MOV H, A
+            0x67 => {
+                self.h = self.accumulator;
+                self.pc += 1;
+            }
+
+            // MOV H, B
+            0x60 => {
+                self.h = self.b;
+            }
+
+            // MOV H, C
+            0x61 => {
+                self.h = self.c;
+            }
+
+            // MOV H, D
+            0x62 => {
+                self.h = self.d;
+            }
+
+            // MOV H, E
+            0x63 => {
+                self.h = self.e;
+            }
+
+            // MOV H, H
+            0x64 => {
+                self.h = self.h;
+            }
+
+            // MOV H, L
+            0x65 => {
+                self.h = self.l;
+            }
+
+            // MOV L, A
+            0x6F => {
+                self.l = self.accumulator;
+                self.pc += 1;
+            }
+
+            // MOV L, B
+            0x68 => {
+                self.l = self.b;
+            }
+
+            // MOV L, C
+            0x69 => {
+                self.l = self.c;
+            }
+
+            // MOV L, D
+            0x6A => {
+                self.l = self.d;
+            }
+
+            // MOV L, E
+            0x6B => {
+                self.l = self.e;
+            }
+
+            // MOV L, H
+            0x6C => {
+                self.l = self.h;
+            }
+
+            // MOV L, L
+            0x6D => {
+                self.l = self.l;
+            }
+
+            // MVI A, value
+            0x3E => {
+                self.accumulator = self.memory[(self.pc + 1) as usize];
+            }
+
+            // MVI B, value
+            0x06 => {
+                self.b = self.memory[(self.pc + 1) as usize];
+            }
+            // MVI C, value
+            0x0E => {
+                self.c = self.fetch();
+            }
+            // MVI D, value
+            0x16 => {
+                self.d = self.fetch();
+            }
+            // MVI E, value
+            0x1E => {
+                self.e = self.fetch();
+            }
+            // MVI H, value
+            0x26 => {
+                self.h = self.fetch();
+            }
+            // MVI L, value
+            0x2E => {
+                self.l = self.fetch();
+            }
+
+            // ANA A
+            0xA7 => {
+                self.accumulator &= self.accumulator;
+            }
+            // ANA B
+            0xA0 => {
+                self.accumulator &= self.b;
+            }
+            // ANA C
+            0xA1 => {
+                self.accumulator &= self.c;
+            }
+            // ANA D
+            0xA2 => {
+                self.accumulator &= self.d;
+            }
+            // ANA E
+            0xA3 => {
+                self.accumulator &= self.e;
+            }
+            // ANA H
+            0xA4 => {
+                self.accumulator &= self.h;
+            }
+            // ANA L
+            0xA5 => {
+                self.accumulator &= self.l;
+            }
+            // ANA M
+            0xA6 => {
+                let address = u16::from_be_bytes([self.h, self.l]);
+                self.accumulator &= self.read_memory(address as usize);
+            }
+
+            // ORA A
+            0xB7 => {
+                self.accumulator |= self.accumulator;
+            }
+            // ORA B
+            0xB0 => {
+                self.accumulator |= self.b;
+            }
+            // ORA C
+            0xB1 => {
+                self.accumulator |= self.c;
+            }
+            // ORA D
+            0xB2 => {
+                self.accumulator |= self.d;
+            }
+            // ORA E
+            0xB3 => {
+                self.accumulator |= self.e;
+            }
+            // ORA H
+            0xB4 => {
+                self.accumulator |= self.h;
+            }
+            // ORA L
+            0xB5 => {
+                self.accumulator |= self.l;
+            }
+
+            // CMA
+            0x2F => {
+                self.accumulator = !self.accumulator;
+            }
+
+            // CMP A
+            0xBF => {
+                self.flags.zero = self.accumulator == self.accumulator;
+                self.flags.sign = (self.accumulator.wrapping_sub(self.accumulator) & 0x80) != 0;
+                self.flags.carry = self.accumulator > self.accumulator;
+            }
+
+            // CMP B
+            0xB8 => {
+                self.flags.zero = self.accumulator == self.b;
+                self.flags.sign = (self.accumulator.wrapping_sub(self.b) & 0x80) != 0;
+                self.flags.carry = self.b > self.accumulator;
+            }
+
+            // CMP C
+            0xB9 => {
+                self.flags.zero = self.accumulator == self.c;
+                self.flags.sign = (self.accumulator.wrapping_sub(self.c) & 0x80) != 0;
+                self.flags.carry = self.c > self.accumulator;
+            }
+            // CMP D
+            0xBA => {
+                self.flags.zero = self.accumulator == self.d;
+                self.flags.sign = (self.accumulator.wrapping_sub(self.d) & 0x80) != 0;
+                self.flags.carry = self.d > self.accumulator;
+            }
+            // CMP E
+            0xBB => {
+                self.flags.zero = self.accumulator == self.e;
+                self.flags.sign = (self.accumulator.wrapping_sub(self.e) & 0x80) != 0;
+                self.flags.carry = self.e > self.accumulator;
+            }
+            // CMP H
+            0xBC => {
+                self.flags.zero = self.accumulator == self.h;
+                self.flags.sign = (self.accumulator.wrapping_sub(self.h) & 0x80) != 0;
+                self.flags.carry = self.h > self.accumulator;
+            }
+
+            // CMP L
+            0xBD => {
+                self.flags.zero = self.accumulator == self.l;
+                self.flags.sign = (self.accumulator.wrapping_sub(self.l) & 0x80) != 0;
+                self.flags.carry = self.l > self.accumulator;
+            }
+
+            // SHLD address
+            0x22 => {
+                self.pc += 1;
+                let low_byte_address = self.fetch();
+                self.pc += 1;
+                let high_byte_address = self.fetch();
+                let address = u16::from_be_bytes([high_byte_address, low_byte_address]);
+                self.write_memory(address as usize, self.l);
+                self.write_memory((address + 1) as usize, self.h);
+                self.pc += 1;
+            }
+            0x76 => return None,
+            _ => {}
         }
-    }
-}
 
-#[cfg(test)]
-mod test {
-    use std::vec;
-
-    use super::*;
-
-    use super::Registers;
-    #[test]
-    fn test_mvi() {
-        let mut cpu = Cpu::new(vec![
-            InstructionSet::Mvi(Registers::RegA, 0xFF),
-            InstructionSet::Sta(0x0700),
-        ]);
-
-        cpu.run();
-        assert_eq!(cpu.memory.read(0x0700), 0xFF);
-    }
-
-    #[test]
-    fn test_mov_b() {
-        let mut cpu = Cpu::new(vec![
-            InstructionSet::Mvi(Registers::RegA, 32),
-            InstructionSet::Mov(Registers::RegB, Registers::RegA),
-        ]);
-        cpu.run();
-        assert_eq!(cpu.b, 32);
-    }
-    #[test]
-    fn test_mov_a() {
-        let mut cpu = Cpu::new(vec![
-            InstructionSet::Mvi(Registers::RegB, 32),
-            InstructionSet::Mov(Registers::RegA, Registers::RegB),
-        ]);
-        cpu.run();
-        assert_eq!(cpu.accumulator, 32);
-    }
-    #[test]
-    fn test_lda() {
-        let mut cpu = Cpu::new(vec![
-            InstructionSet::Mvi(Registers::RegA, 40),
-            InstructionSet::Sta(0x0600),
-            InstructionSet::Lda(0x0600),
-        ]);
-        cpu.run();
-        assert_eq!(cpu.accumulator, 40);
-    }
-
-    #[test]
-    fn test_lxi_b() {
-        let mut cpu = Cpu::new(vec![InstructionSet::Lxi(Registers::RegB, 0x2050)]);
-        cpu.run();
-        assert_eq!(cpu.b, 0x20);
-        assert_eq!(cpu.c, 0x50);
-    }
-
-    #[test]
-    fn test_lxi_d() {
-        let mut cpu = Cpu::new(vec![InstructionSet::Lxi(Registers::RegD, 0x2051)]);
-        cpu.run();
-        assert_eq!(cpu.d, 0x20);
-        assert_eq!(cpu.e, 0x51);
-    }
-
-    #[test]
-    fn test_lxi_h() {
-        let mut cpu = Cpu::new(vec![InstructionSet::Lxi(Registers::RegH, 0xFFFF)]);
-        cpu.run();
-        assert_eq!(cpu.h, 0xFF);
-        assert_eq!(cpu.l, 0xFF);
-    }
-
-    #[test]
-    fn test_add_b() {
-        let mut cpu = Cpu::new(vec![
-            InstructionSet::Mvi(Registers::RegA, 0x20),
-            InstructionSet::Mvi(Registers::RegB, 0x30),
-            InstructionSet::Add(Registers::RegB),
-        ]);
-        cpu.run();
-        assert_eq!(cpu.accumulator, 0x50)
-    }
-
-    #[test]
-    fn test_add_c() {
-        let mut cpu = Cpu::new(vec![
-            InstructionSet::Mvi(Registers::RegA, 0x60),
-            InstructionSet::Mvi(Registers::RegC, 0x90),
-            InstructionSet::Add(Registers::RegC),
-        ]);
-        cpu.run();
-        assert_eq!(cpu.accumulator, 0xF0);
-    }
-
-    #[test]
-    fn test_add_overflow() {
-        let mut cpu = Cpu::new(vec![
-            InstructionSet::Mvi(Registers::RegA, 0xFF),
-            InstructionSet::Mvi(Registers::RegB, 0x01),
-            InstructionSet::Add(Registers::RegB),
-        ]);
-        cpu.run();
-        assert_eq!(cpu.accumulator, 0xFF);
-        assert_eq!(cpu.flags.carry, true);
-    }
-
-    #[test]
-    fn test_sub_b() {
-        let mut cpu = Cpu::new(vec![
-            InstructionSet::Mvi(Registers::RegA, 0x90),
-            InstructionSet::Mvi(Registers::RegC, 0x60),
-            InstructionSet::Sub(Registers::RegC),
-        ]);
-        cpu.run();
-        assert_eq!(cpu.accumulator, 0x30);
-    }
-
-    #[test]
-    fn test_inx_b() {
-        let mut cpu = Cpu::new(vec![
-            InstructionSet::Mvi(Registers::RegB, 29),
-            InstructionSet::Mvi(Registers::RegC, 29),
-            InstructionSet::Inx(Registers::RegB),
-        ]);
-        cpu.run();
-        assert_eq!(cpu.b, 0x1D);
-        assert_eq!(cpu.c, 0x1E);
-    }
-
-    #[test]
-    fn test_inx_d() {
-        let mut cpu = Cpu::new(vec![
-            InstructionSet::Mvi(Registers::RegD, 20),
-            InstructionSet::Mvi(Registers::RegE, 21),
-            InstructionSet::Inx(Registers::RegD),
-        ]);
-        cpu.run();
-        assert_eq!(cpu.d, 20);
-        assert_eq!(cpu.e, 22);
-    }
-
-    #[test]
-    fn test_ana_b() {
-        let mut cpu = Cpu::new(vec![
-            InstructionSet::Mvi(Registers::RegA, 0b11001100),
-            InstructionSet::Mvi(Registers::RegB, 0b10101010),
-            InstructionSet::Ana(Registers::RegB),
-        ]);
-        cpu.run();
-        assert_eq!(cpu.accumulator, 0b10001000);
-    }
-
-    #[test]
-    fn test_ana_c() {
-        let mut cpu = Cpu::new(vec![
-            InstructionSet::Mvi(Registers::RegA, 0b11110000),
-            InstructionSet::Mvi(Registers::RegC, 0b11001100),
-            InstructionSet::Ana(Registers::RegC),
-        ]);
-        cpu.run();
-        assert_eq!(cpu.accumulator, 0b11000000);
-    }
-
-    #[test]
-    fn test_ora_b() {
-        let mut cpu = Cpu::new(vec![
-            InstructionSet::Mvi(Registers::RegA, 0b11001100),
-            InstructionSet::Mvi(Registers::RegB, 0b10101010),
-            InstructionSet::Ora(Registers::RegB),
-        ]);
-        cpu.run();
-        assert_eq!(cpu.accumulator, 0b11101110);
-    }
-
-    #[test]
-    fn test_ora_c() {
-        let mut cpu = Cpu::new(vec![
-            InstructionSet::Mvi(Registers::RegA, 0b11000011),
-            InstructionSet::Mvi(Registers::RegC, 0b11110000),
-            InstructionSet::Ora(Registers::RegC),
-        ]);
-        cpu.run();
-        assert_eq!(cpu.accumulator, 0b11110011); // 0xC3 | 0xF0 == 0xF3
-    }
-
-    #[test]
-    fn test_cma_case1() {
-        let mut cpu = Cpu::new(vec![
-            InstructionSet::Mvi(Registers::RegA, 0x99),
-            InstructionSet::Cma,
-            InstructionSet::Hlt,
-        ]);
-
-        cpu.run();
-        assert_eq!(cpu.accumulator, 0x66);
-    }
-
-    #[test]
-    fn test_cma_case2() {
-        let mut cpu = Cpu::new(vec![
-            InstructionSet::Mvi(Registers::RegA, 0xA1),
-            InstructionSet::Cma,
-            InstructionSet::Hlt,
-        ]);
-
-        cpu.run();
-        assert_eq!(cpu.accumulator, 0x5E);
-    }
-
-    #[test]
-    fn test_cmp_b() {
-        let mut cpu = Cpu::new(vec![
-            InstructionSet::Mvi(Registers::RegA, 0x60),
-            InstructionSet::Mvi(Registers::RegB, 0x70),
-            InstructionSet::Cmp(Registers::RegB),
-        ]);
-        cpu.run();
-        assert_eq!(cpu.flags.zero, false);
-        assert_eq!(cpu.flags.sign, true);
-        assert_eq!(cpu.flags.carry, true);
-    }
-
-    #[test]
-    fn test_cmp_c() {
-        let mut cpu = Cpu::new(vec![
-            InstructionSet::Mvi(Registers::RegA, 0x60),
-            InstructionSet::Mvi(Registers::RegC, 0x50),
-            InstructionSet::Cmp(Registers::RegC),
-        ]);
-        cpu.run();
-        assert_eq!(cpu.flags.zero, false);
-        assert_eq!(cpu.flags.sign, false);
-        assert_eq!(cpu.flags.carry, false);
-    }
-
-    #[test]
-    fn test_cmp_a() {
-        let mut cpu = Cpu::new(vec![
-            InstructionSet::Mvi(Registers::RegA, 0x40),
-            InstructionSet::Cmp(Registers::RegA),
-        ]);
-        cpu.run();
-        assert_eq!(cpu.flags.zero, true);
-        assert_eq!(cpu.flags.sign, false);
-        assert_eq!(cpu.flags.carry, false);
+        Some(self.pc)
     }
 }
