@@ -27,6 +27,7 @@ impl Registers {
 }
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 struct FlagRegisters {
     pub sign: bool,
     pub zero: bool,
@@ -47,6 +48,7 @@ impl FlagRegisters {
 }
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct Cpu {
     pub pc: u16,
     sp: usize,
@@ -78,6 +80,7 @@ impl Cpu {
         }
     }
 
+    #[allow(dead_code)]
     pub fn print_memory(&self) {
         for (i, address) in self.memory.iter().enumerate() {
             if *address != 0 {
@@ -89,6 +92,22 @@ impl Cpu {
         println!("----------------");
     }
 
+    pub fn reset_registers(&mut self) {
+        self.pc = 0;
+        self.sp = 0;
+        self.accumulator = 0;
+        self.b = 0;
+        self.c = 0;
+        self.d = 0;
+        self.e = 0;
+        self.h = 0;
+        self.l = 0;
+    }
+
+    pub fn reset_memory(&mut self) {
+        self.memory = [0; MEMORY_SIZE];
+    }
+
     pub fn write_memory(&mut self, address: usize, value: u8) {
         self.memory[address] = value;
     }
@@ -96,6 +115,8 @@ impl Cpu {
     pub fn read_memory(&self, address: usize) -> u8 {
         self.memory[address]
     }
+
+    #[allow(dead_code)]
     pub fn print(&self) {
         println!(
             r#" 
@@ -404,6 +425,7 @@ impl Cpu {
                 } else {
                     self.flags.carry = true;
                 }
+                self.pc += 1;
             }
 
             // ADD B
@@ -413,6 +435,7 @@ impl Cpu {
                 } else {
                     self.flags.carry = true;
                 }
+                self.pc += 1;
             }
 
             // ADD C
@@ -730,12 +753,16 @@ impl Cpu {
 
             // MVI A, value
             0x3E => {
-                self.accumulator = self.memory[(self.pc + 1) as usize];
+                self.pc += 1;
+                self.accumulator = self.fetch();
+                self.pc += 1;
             }
 
             // MVI B, value
             0x06 => {
-                self.b = self.memory[(self.pc + 1) as usize];
+                self.pc += 1;
+                self.b = self.fetch();
+                self.pc += 1;
             }
             // MVI C, value
             0x0E => {
@@ -881,6 +908,16 @@ impl Cpu {
                 let address = u16::from_be_bytes([high_byte_address, low_byte_address]);
                 self.write_memory(address as usize, self.l);
                 self.write_memory((address + 1) as usize, self.h);
+                self.pc += 1;
+            }
+            // STA Address
+            0x32 => {
+                self.pc += 1;
+                let low_byte_address = self.fetch();
+                self.pc += 1;
+                let high_byte_address = self.fetch();
+                let address = u16::from_be_bytes([high_byte_address, low_byte_address]);
+                self.write_memory(address as usize, self.accumulator);
                 self.pc += 1;
             }
             0x76 => return None,
