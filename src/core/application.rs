@@ -32,9 +32,8 @@ impl Application {
     }
 
     fn evaluate(&mut self) {
-        self.reset();
         let instructions = parser::parse_instructions(&self.source);
-
+        let instructions_count = instructions.iter().len();
         for (address, value) in self.address.iter() {
             if let (Ok(address), Ok(value)) = (
                 u16::from_str_radix(address, 16),
@@ -44,17 +43,10 @@ impl Application {
             }
         }
 
-        for (i, instruction) in instructions.iter().enumerate() {
-            self.cpu.write_memory(i, *instruction);
-        }
-
-        let instructions_count = instructions.iter().len();
-
         loop {
             match self.cpu.eval() {
                 Some(pc) => {
                     if pc as usize >= instructions_count {
-                        println!("program counter is {}", pc);
                         break;
                     }
                 }
@@ -75,6 +67,17 @@ impl Application {
         }
         self.cpu.print_memory();
     }
+
+    fn assemble(&mut self) {
+        self.reset();
+        let instructions = parser::parse_instructions(&self.source);
+
+        for (i, instruction) in instructions.iter().enumerate() {
+            self.cpu.write_memory(i, *instruction);
+            self.address[i].0 = format!("{:04X}", i);
+            self.address[i].1 = format!("{:02X}", instruction);
+        }
+    }
 }
 
 impl eframe::App for Application {
@@ -86,6 +89,10 @@ impl eframe::App for Application {
                     .desired_rows(20)
                     .desired_width(500.),
             );
+            if ui.button("Assemble").clicked() {
+                self.assemble();
+            };
+
             if ui.button("Run").clicked() {
                 self.evaluate();
             };

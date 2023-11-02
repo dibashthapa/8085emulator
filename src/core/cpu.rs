@@ -378,7 +378,9 @@ impl Cpu {
                 self.pc += 1;
                 let high_byte_address = self.fetch();
                 let address = u16::from_be_bytes([high_byte_address, low_byte_address]);
+                println!("address is {}", address);
                 self.accumulator = self.read_memory(address as usize);
+                println!("value is {}", self.read_memory(address as usize));
                 self.pc += 1;
             }
 
