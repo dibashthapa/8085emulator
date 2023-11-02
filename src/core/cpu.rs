@@ -373,8 +373,13 @@ impl Cpu {
 
             // LDA address
             0x3A => {
-                let address = u16::from_be_bytes([self.fetch(), self.fetch()]);
+                self.pc += 1;
+                let low_byte_address = self.fetch();
+                self.pc += 1;
+                let high_byte_address = self.fetch();
+                let address = u16::from_be_bytes([high_byte_address, low_byte_address]);
                 self.accumulator = self.read_memory(address as usize);
+                self.pc += 1;
             }
 
             // SUB A

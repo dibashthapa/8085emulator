@@ -1,7 +1,5 @@
-use crate::token::Token;
+use super::{cpu::Registers, token::Token};
 use logos::Logos;
-
-use super::cpu::Registers;
 
 pub fn parse_instructions(code: &str) -> Vec<u8> {
     let mut lexer = Token::lexer(code);
@@ -394,6 +392,16 @@ pub fn parse_instructions(code: &str) -> Vec<u8> {
                                     );
                                 }
                             }
+                        }
+                    }
+
+                    "LDA" => {
+                        instructions.push(0x3A);
+                        if let Some(Ok(Token::Address(address))) = lexer.next() {
+                            let high_byte = ((address & 0xFF00) >> 8) as u8;
+                            let low_byte = (address & 0x00FF) as u8;
+                            instructions.push(low_byte);
+                            instructions.push(high_byte);
                         }
                     }
                     "CMA" => {

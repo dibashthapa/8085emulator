@@ -25,14 +25,16 @@ impl Application {
         Duration::from_secs(1)
     }
 
-    fn reset_cpu(&mut self) {
+    fn reset(&mut self) {
         self.cpu.reset_memory();
         self.cpu.reset_registers();
+        self.address = vec![(String::new(), String::new()); 0xFFFF];
     }
 
     fn evaluate(&mut self) {
-        self.reset_cpu();
+        self.reset();
         let instructions = parser::parse_instructions(&self.source);
+
         for (address, value) in self.address.iter() {
             if let (Ok(address), Ok(value)) = (
                 u16::from_str_radix(address, 16),
@@ -42,26 +44,36 @@ impl Application {
             }
         }
 
-        self.address = vec![(String::new(), String::new()); 0xFFFF];
-
         for (i, instruction) in instructions.iter().enumerate() {
             self.cpu.write_memory(i, *instruction);
-            self.address[i].0 = format!("{:04X}", i);
-            self.address[i].1 = format!("{:02X}", *instruction);
         }
 
-        let memory_count = instructions.iter().len();
+        let instructions_count = instructions.iter().len();
 
         loop {
             match self.cpu.eval() {
                 Some(pc) => {
-                    if pc as usize >= memory_count {
+                    if pc as usize >= instructions_count {
+                        println!("program counter is {}", pc);
                         break;
                     }
                 }
                 None => break,
             }
         }
+        let non_zero_entries: Vec<(usize, &u8)> = self
+            .cpu
+            .memory
+            .iter()
+            .enumerate()
+            .filter(|(_, &value)| value != 0)
+            .collect();
+
+        for (index, (address, value)) in non_zero_entries.iter().enumerate() {
+            self.address[index].0 = format!("{:04X}", address);
+            self.address[index].1 = format!("{:02X}", value);
+        }
+        self.cpu.print_memory();
     }
 }
 
