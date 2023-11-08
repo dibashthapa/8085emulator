@@ -1,15 +1,17 @@
+use logos::Logos;
 use std::time::Duration;
 
 use eframe::egui::{CentralPanel, Context, TextEdit};
 
 use crate::gui::{memory::render_memory, registers::render_registers};
 
-use super::{cpu::Cpu, parser};
+use super::{assembler::assemble, cpu::Cpu, parser::parse, token::Token};
 
 pub struct Application {
     pub source: String,
     pub address: Vec<(String, String)>,
     pub cpu: Cpu,
+    assembled_instructions: Vec<u8>,
 }
 
 impl Application {
@@ -18,6 +20,7 @@ impl Application {
             source: String::new(),
             address: vec![(String::new(), String::new()); 0xFFFF],
             cpu: Cpu::new(),
+            assembled_instructions: vec![],
         }
     }
 
@@ -32,8 +35,7 @@ impl Application {
     }
 
     fn evaluate(&mut self) {
-        let instructions = parser::parse_instructions(&self.source);
-        let instructions_count = instructions.iter().len();
+        let assembled_count = self.assembled_instructions.iter().len();
         for (address, value) in self.address.iter() {
             if let (Ok(address), Ok(value)) = (
                 u16::from_str_radix(address, 16),
@@ -46,7 +48,7 @@ impl Application {
         loop {
             match self.cpu.eval() {
                 Some(pc) => {
-                    if pc as usize >= instructions_count {
+                    if pc as usize >= assembled_count {
                         break;
                     }
                 }
@@ -70,9 +72,12 @@ impl Application {
 
     fn assemble(&mut self) {
         self.reset();
-        let instructions = parser::parse_instructions(&self.source);
+        let lexer = Token::lexer(&self.source);
+        let tokens: Vec<_> = lexer.filter_map(|token| token.ok()).collect();
+        let instructions = parse(tokens);
+        self.assembled_instructions = assemble(&instructions);
 
-        for (i, instruction) in instructions.iter().enumerate() {
+        for (i, instruction) in self.assembled_instructions.iter().enumerate() {
             self.cpu.write_memory(i, *instruction);
             self.address[i].0 = format!("{:04X}", i);
             self.address[i].1 = format!("{:02X}", instruction);

@@ -1,6 +1,6 @@
 const MEMORY_SIZE: usize = 0xFFFF;
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug, Copy)]
 pub enum Registers {
     RegB,
     RegC,
@@ -926,6 +926,16 @@ impl Cpu {
                 let address = u16::from_be_bytes([high_byte_address, low_byte_address]);
                 self.write_memory(address as usize, self.accumulator);
                 self.pc += 1;
+            }
+
+            // JMP Address
+            0xC3 => {
+                self.pc += 1;
+                let low_byte_address = self.fetch();
+                self.pc += 1;
+                let high_byte_address = self.fetch();
+                let address = u16::from_be_bytes([high_byte_address, low_byte_address]);
+                self.pc = address;
             }
             0x76 => return None,
             _ => {}

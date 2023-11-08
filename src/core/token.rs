@@ -1,40 +1,24 @@
+use super::cpu::Registers;
 use logos::Logos;
 
-#[derive(Logos, Debug, PartialEq)]
+#[derive(Logos, Debug, PartialEq, Clone, Copy)]
 #[logos(skip r"[ \t\n,]+")]
-pub enum Token {
+pub enum Token<'a> {
     #[token("false", |_| false)]
     #[token("true", |_| true)]
     Bool(bool),
 
-    #[token("MVI")]
-    #[token("MOV")]
-    #[token("INR")]
-    #[token("DCR")]
-    #[token("LDA")]
-    #[token("STA")]
-    #[token("LXI")]
-    #[token("ADD")]
-    #[token("ADI")]
-    #[token("ADC")]
-    #[token("SUB")]
-    #[token("INX")]
-    #[token("XCHG")]
-    #[token("LHLD")]
-    #[token("SHLD")]
-    #[token("DAD")]
-    #[token("HLT")]
-    #[token("ANA")]
-    #[token("ORA")]
-    #[token("CMA")]
-    #[token("CMP")]
-    OpCode,
+    #[regex(r"[a-zA-Z]{1,8}", |lex| lex.slice())]
+    Word(&'a str),
 
-    #[regex(r"[ABCDEHL]")]
-    Register,
+    #[regex(r"[ABCDEHL]", |lex|  Registers::from(lex.slice()),priority=2)]
+    Register(Registers),
 
     #[regex(r"[;].*", logos::skip)]
     Comment,
+
+    #[regex(r"[a-zA-z]+:", |lex| lex.slice().trim_end_matches(':'))]
+    Label(&'a str),
 
     #[regex(r"[0-9A-F]{2}", |lex| u8::from_str_radix(lex.slice(), 16).unwrap())]
     Number(u8),
