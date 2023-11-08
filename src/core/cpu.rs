@@ -9,6 +9,7 @@ pub enum Registers {
     RegH,
     RegL,
     RegA,
+    RegM,
 }
 
 impl Registers {
@@ -21,6 +22,7 @@ impl Registers {
             "E" => Registers::RegE,
             "H" => Registers::RegH,
             "L" => Registers::RegL,
+            "M" => Registers::RegM,
             _ => panic!("unknown register"),
         }
     }
@@ -285,16 +287,29 @@ impl Cpu {
             // DCR B
             0x05 => {
                 self.b = self.b.wrapping_sub(1);
+
+                if self.b == 0 {
+                    self.flags.zero = true;
+                }
+                self.pc += 1;
             }
 
             // DCR C
-            0x15 => {
+            0x0D => {
                 self.c = self.c.wrapping_sub(1);
+                if self.c == 0 {
+                    self.flags.zero = true;
+                }
+                self.pc += 1;
             }
 
             // DCR D
-            0x0D => {
+            0x15 => {
                 self.d = self.d.wrapping_sub(1);
+                if self.d == 0 {
+                    self.flags.zero = true;
+                }
+                self.pc += 1;
             }
 
             // DCR E
@@ -320,6 +335,11 @@ impl Cpu {
             // INR B
             0x04 => {
                 self.b = self.b.wrapping_add(1);
+
+                if self.b == 0 {
+                    self.flags.zero = true;
+                }
+                self.pc += 1;
             }
 
             // INR C
@@ -367,8 +387,10 @@ impl Cpu {
             0x23 => {
                 let address = u16::from_be_bytes([self.h, self.l]);
                 let new_address = address.wrapping_add(1);
+
                 self.h = (new_address >> 8) as u8;
                 self.l = new_address as u8;
+                self.pc += 1;
             }
 
             // LDA address
@@ -378,9 +400,7 @@ impl Cpu {
                 self.pc += 1;
                 let high_byte_address = self.fetch();
                 let address = u16::from_be_bytes([high_byte_address, low_byte_address]);
-                println!("address is {}", address);
                 self.accumulator = self.read_memory(address as usize);
-                println!("value is {}", self.read_memory(address as usize));
                 self.pc += 1;
             }
 
@@ -509,10 +529,13 @@ impl Cpu {
 
             // LXI H, value
             0x21 => {
+                self.pc += 1;
                 let high_byte = self.fetch();
+                self.pc += 1;
                 let low_byte = self.fetch();
                 self.h = high_byte;
                 self.l = low_byte;
+                self.pc += 1;
             }
 
             // MOV A, A
@@ -758,6 +781,20 @@ impl Cpu {
                 self.l = self.l;
             }
 
+            // MOV M, A
+            0x77 => {
+                let address = u16::from_be_bytes([self.h, self.l]);
+                self.accumulator = self.read_memory(address as usize);
+                self.pc += 1;
+            }
+
+            // MOV M, B
+            0x70 => {
+                let address = u16::from_be_bytes([self.h, self.l]);
+                self.b = self.read_memory(address as usize);
+                self.pc += 1;
+            }
+
             // MVI A, value
             0x3E => {
                 self.pc += 1;
@@ -773,7 +810,9 @@ impl Cpu {
             }
             // MVI C, value
             0x0E => {
+                self.pc += 1;
                 self.c = self.fetch();
+                self.pc += 1;
             }
             // MVI D, value
             0x16 => {
@@ -936,6 +975,21 @@ impl Cpu {
                 let high_byte_address = self.fetch();
                 let address = u16::from_be_bytes([high_byte_address, low_byte_address]);
                 self.pc = address;
+            }
+
+            // JNZ address
+            0xC2 => {
+                self.pc += 1;
+                let low_byte_address = self.fetch();
+                self.pc += 1;
+                let high_byte_address = self.fetch();
+                let address = u16::from_be_bytes([high_byte_address, low_byte_address]);
+                println!("address is {}", address);
+                if !self.flags.zero {
+                    self.pc = address;
+                } else {
+                    self.pc += 1;
+                }
             }
             0x76 => return None,
             _ => {}

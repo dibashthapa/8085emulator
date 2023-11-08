@@ -169,6 +169,28 @@ pub fn assemble(instructions: &Vec<Instruction>) -> Vec<u8> {
                 (Registers::RegL, Registers::RegL) => {
                     assembled_instructions.push(0x6D);
                 }
+                (Registers::RegM, Registers::RegA) => {
+                    assembled_instructions.push(0x77);
+                }
+                (Registers::RegM, Registers::RegB) => {
+                    assembled_instructions.push(0x70);
+                }
+                (Registers::RegM, Registers::RegC) => {
+                    assembled_instructions.push(0x71);
+                }
+                (Registers::RegM, Registers::RegD) => {
+                    assembled_instructions.push(0x72);
+                }
+                (Registers::RegM, Registers::RegE) => {
+                    assembled_instructions.push(0x73);
+                }
+                (Registers::RegM, Registers::RegH) => {
+                    assembled_instructions.push(0x74);
+                }
+                (Registers::RegM, Registers::RegL) => {
+                    assembled_instructions.push(0x75);
+                }
+                _ => {}
             },
             Ins::Mvi(register, value) => match register {
                 Registers::RegA => {
@@ -201,6 +223,7 @@ pub fn assemble(instructions: &Vec<Instruction>) -> Vec<u8> {
                     assembled_instructions.push(0x2E);
                     assembled_instructions.push(value);
                 }
+                _ => {}
             },
             Ins::Adi(value) => {
                 assembled_instructions.push(0xC6);
@@ -223,6 +246,44 @@ pub fn assemble(instructions: &Vec<Instruction>) -> Vec<u8> {
             }
             Ins::Add(Registers::RegH) => {
                 assembled_instructions.push(0x84);
+            }
+            Ins::Lxi(registers, address) => match registers {
+                Registers::RegH => {
+                    assembled_instructions.push(0x21);
+                    let (low_byte, high_byte) = split_address(address);
+                    assembled_instructions.push(low_byte);
+                    assembled_instructions.push(high_byte);
+                }
+                Registers::RegD => {
+                    assembled_instructions.push(0x11);
+                    let (low_byte, high_byte) = split_address(address);
+                    assembled_instructions.push(low_byte);
+                    assembled_instructions.push(high_byte);
+                }
+                _ => {}
+            },
+            Ins::Jnz(value) => {
+                if let JumpTarget::Address(address) = value {
+                    assembled_instructions.push(0xC2);
+
+                    let (low_byte, high_byte) = split_address(address);
+                    assembled_instructions.push(low_byte);
+
+                    assembled_instructions.push(high_byte);
+                } else if let JumpTarget::Label(label) = value {
+                    if let Some(address) = symbol_table.get(label) {
+                        let (low_byte, high_byte) = split_address(*address);
+                        assembled_instructions.push(0xC2);
+                        assembled_instructions.push(low_byte);
+                        assembled_instructions.push(high_byte);
+                    } else {
+                        let location = assembled_instructions.len();
+                        assembled_instructions.push(0xC2);
+                        assembled_instructions.push(0x00);
+                        assembled_instructions.push(0x00);
+                        unresolved_labels.entry(label).or_default().push(location);
+                    }
+                }
             }
             Ins::Jmp(value) => {
                 if let JumpTarget::Address(address) = value {
@@ -247,6 +308,67 @@ pub fn assemble(instructions: &Vec<Instruction>) -> Vec<u8> {
                     }
                 }
             }
+            Ins::Inx(register) => match register {
+                Registers::RegB => {
+                    assembled_instructions.push(0x03);
+                }
+                Registers::RegD => {
+                    assembled_instructions.push(0x13);
+                }
+                Registers::RegH => {
+                    assembled_instructions.push(0x23);
+                }
+                _ => {}
+            },
+
+            Ins::Inr(register) => match register {
+                Registers::RegA => {
+                    assembled_instructions.push(0x3C);
+                }
+                Registers::RegB => {
+                    assembled_instructions.push(0x04);
+                }
+                Registers::RegC => {
+                    assembled_instructions.push(0x0C);
+                }
+                Registers::RegD => {
+                    assembled_instructions.push(0x14);
+                }
+                Registers::RegE => {
+                    assembled_instructions.push(0x1C);
+                }
+                Registers::RegH => {
+                    assembled_instructions.push(0x24);
+                }
+                Registers::RegL => {
+                    assembled_instructions.push(0x2C);
+                }
+                _ => {}
+            },
+            Ins::Dcr(register) => match register {
+                Registers::RegA => {
+                    assembled_instructions.push(0x3D);
+                }
+                Registers::RegB => {
+                    assembled_instructions.push(0x05);
+                }
+                Registers::RegC => {
+                    assembled_instructions.push(0x0D);
+                }
+                Registers::RegD => {
+                    assembled_instructions.push(0x15);
+                }
+                Registers::RegE => {
+                    assembled_instructions.push(0x1D);
+                }
+                Registers::RegH => {
+                    assembled_instructions.push(0x25);
+                }
+                Registers::RegL => {
+                    assembled_instructions.push(0x2D);
+                }
+                _ => {}
+            },
             _ => {}
         }
     }
@@ -254,10 +376,6 @@ pub fn assemble(instructions: &Vec<Instruction>) -> Vec<u8> {
     for (label, locations) in unresolved_labels {
         if let Some(address) = symbol_table.get(label) {
             let (low_byte, high_byte) = split_address(*address);
-            println!(
-                "Addres is {:04X}",
-                u16::from_be_bytes([high_byte, low_byte])
-            );
             for location in locations {
                 assembled_instructions[location + 1] = low_byte;
                 assembled_instructions[location + 2] = high_byte;
@@ -266,4 +384,42 @@ pub fn assemble(instructions: &Vec<Instruction>) -> Vec<u8> {
     }
 
     assembled_instructions
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::core::{
+        assembler::assemble,
+        cpu::Registers,
+        parser::{Ins, Instruction, JumpTarget},
+    };
+
+    macro_rules! instructions {
+    ($(($label:expr, $ins:expr)),* $(,)?) => {{
+        let mut v = Vec::new();
+        $(
+            v.push(Instruction { ins: $ins, label: $label });
+        )*
+        v
+    }};
+    }
+
+    #[test]
+    fn test_loop() {
+        assert_eq!(
+            assemble(&instructions!(
+                (None, Ins::Lxi(Registers::RegH, 0x2050)),
+                (None, Ins::Mvi(Registers::RegB, 0x01)),
+                (None, Ins::Mvi(Registers::RegC, 0x0A)),
+                (Some("X"), Ins::Mov(Registers::RegM, Registers::RegB)),
+                (None, Ins::Inx(Registers::RegH)),
+                (None, Ins::Inr(Registers::RegB)),
+                (None, Ins::Dcr(Registers::RegC)),
+                (None, Ins::Jnz(JumpTarget::Label("X")))
+            )),
+            vec![
+                0x21, 0x50, 0x20, 0x06, 0x01, 0x0E, 0x0A, 0x70, 0x23, 0x04, 0x0D, 0xC2, 0x07, 0x00
+            ]
+        );
+    }
 }

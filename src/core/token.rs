@@ -11,7 +11,7 @@ pub enum Token<'a> {
     #[regex(r"[a-zA-Z]{1,8}", |lex| lex.slice())]
     Word(&'a str),
 
-    #[regex(r"[ABCDEHL]", |lex|  Registers::from(lex.slice()),priority=2)]
+    #[regex(r"[ABCDEHLM]", |lex|  Registers::from(lex.slice()),priority=2)]
     Register(Registers),
 
     #[regex(r"[;].*", logos::skip)]
