@@ -43,6 +43,9 @@ pub fn assemble(instructions: &Vec<Instruction>) -> Vec<u8> {
                 (Registers::RegA, Registers::RegA) => {
                     assembled_instructions.push(0x47);
                 }
+                (Registers::RegA, Registers::RegM) => {
+                    assembled_instructions.push(0x7E);
+                }
                 (Registers::RegB, Registers::RegA) => {
                     assembled_instructions.push(0x7F);
                 }
@@ -63,6 +66,9 @@ pub fn assemble(instructions: &Vec<Instruction>) -> Vec<u8> {
                 }
                 (Registers::RegB, Registers::RegL) => {
                     assembled_instructions.push(0x45);
+                }
+                (Registers::RegB, Registers::RegM) => {
+                    assembled_instructions.push(0x46);
                 }
                 (Registers::RegC, Registers::RegA) => {
                     assembled_instructions.push(0x4F);
@@ -369,7 +375,70 @@ pub fn assemble(instructions: &Vec<Instruction>) -> Vec<u8> {
                 }
                 _ => {}
             },
-            _ => {}
+            Ins::Cmp(register) => match register {
+                Registers::RegA => {
+                    assembled_instructions.push(0xBF);
+                }
+                Registers::RegB => {
+                    assembled_instructions.push(0xB8);
+                }
+                Registers::RegC => {
+                    assembled_instructions.push(0xB9);
+                }
+                Registers::RegD => {
+                    assembled_instructions.push(0xBA);
+                }
+                Registers::RegE => {
+                    assembled_instructions.push(0xBB);
+                }
+                Registers::RegH => {
+                    assembled_instructions.push(0xBC);
+                }
+                Registers::RegL => {
+                    assembled_instructions.push(0xBD);
+                }
+                Registers::RegM => {
+                    assembled_instructions.push(0xBE);
+                }
+            },
+            Ins::Jnc(value) => {
+                if let JumpTarget::Address(address) = value {
+                    assembled_instructions.push(0xD2);
+
+                    let (low_byte, high_byte) = split_address(address);
+                    assembled_instructions.push(low_byte);
+
+                    assembled_instructions.push(high_byte);
+                } else if let JumpTarget::Label(label) = value {
+                    if let Some(address) = symbol_table.get(label) {
+                        let (low_byte, high_byte) = split_address(*address);
+                        assembled_instructions.push(0xD2);
+                        assembled_instructions.push(low_byte);
+                        assembled_instructions.push(high_byte);
+                    } else {
+                        let location = assembled_instructions.len();
+                        assembled_instructions.push(0xD2);
+                        assembled_instructions.push(0x00);
+                        assembled_instructions.push(0x00);
+                        unresolved_labels.entry(label).or_default().push(location);
+                    }
+                }
+            }
+            Ins::Sta(address) => {
+                assembled_instructions.push(0x32);
+                let (low_byte, high_byte) = split_address(address);
+                assembled_instructions.push(low_byte);
+                assembled_instructions.push(high_byte);
+            }
+            Ins::Add(Registers::RegM) => {
+                assembled_instructions.push(0x86);
+            }
+            Ins::Add(Registers::RegL) => {
+                assembled_instructions.push(0x85);
+            }
+            Ins::Hlt => {
+                assembled_instructions.push(0x76);
+            }
         }
     }
 

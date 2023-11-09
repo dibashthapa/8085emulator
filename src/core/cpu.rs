@@ -533,8 +533,8 @@ impl Cpu {
                 let high_byte = self.fetch();
                 self.pc += 1;
                 let low_byte = self.fetch();
-                self.h = high_byte;
-                self.l = low_byte;
+                self.h = low_byte;
+                self.l = high_byte;
                 self.pc += 1;
             }
 
@@ -574,6 +574,12 @@ impl Cpu {
                 self.accumulator = self.l;
                 self.pc += 1;
             }
+            // MOV A, M
+            0x7E => {
+                let address = u16::from_be_bytes([self.h, self.l]);
+                self.accumulator = self.read_memory(address as usize);
+                self.pc += 1;
+            }
             // MOV B, A
             0x47 => {
                 self.b = self.accumulator;
@@ -607,6 +613,12 @@ impl Cpu {
             // MOV B, L
             0x45 => {
                 self.b = self.l;
+                self.pc += 1;
+            }
+            // MOV B, M
+            0x46 => {
+                let address = u16::from_be_bytes([self.h, self.l]);
+                self.b = self.read_memory(address as usize);
                 self.pc += 1;
             }
             // MOV C, A
@@ -783,15 +795,16 @@ impl Cpu {
 
             // MOV M, A
             0x77 => {
-                let address = u16::from_be_bytes([self.h, self.l]);
-                self.accumulator = self.read_memory(address as usize);
+                let address = u16::from_be_bytes([self.l, self.h]);
+                self.write_memory(address as usize, self.c);
                 self.pc += 1;
             }
 
             // MOV M, B
             0x70 => {
                 let address = u16::from_be_bytes([self.h, self.l]);
-                self.b = self.read_memory(address as usize);
+                dbg!(format!("{:04x}", address));
+                self.write_memory(address as usize, self.b);
                 self.pc += 1;
             }
 
@@ -945,6 +958,19 @@ impl Cpu {
                 self.flags.carry = self.l > self.accumulator;
             }
 
+            // CMP M
+            0xBE => {
+                let address = u16::from_be_bytes([self.h, self.l]);
+                self.flags.zero = self.accumulator == self.read_memory(address as usize);
+                self.flags.sign = (self
+                    .accumulator
+                    .wrapping_sub(self.read_memory(address as usize))
+                    & 0x80)
+                    != 0;
+                self.flags.carry = self.read_memory(address as usize) > self.accumulator;
+                self.pc += 1;
+            }
+
             // SHLD address
             0x22 => {
                 self.pc += 1;
@@ -984,8 +1010,21 @@ impl Cpu {
                 self.pc += 1;
                 let high_byte_address = self.fetch();
                 let address = u16::from_be_bytes([high_byte_address, low_byte_address]);
-                println!("address is {}", address);
                 if !self.flags.zero {
+                    self.pc = address;
+                } else {
+                    self.pc += 1;
+                }
+            }
+
+            // JNC Address
+            0xD2 => {
+                self.pc += 1;
+                let low_byte_address = self.fetch();
+                self.pc += 1;
+                let high_byte_address = self.fetch();
+                let address = u16::from_be_bytes([high_byte_address, low_byte_address]);
+                if !self.flags.carry {
                     self.pc = address;
                 } else {
                     self.pc += 1;

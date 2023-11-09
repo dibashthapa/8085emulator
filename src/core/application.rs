@@ -49,6 +49,7 @@ impl Application {
         loop {
             match self.cpu.eval() {
                 Some(pc) => {
+                    dbg!(pc);
                     if pc as usize >= assembled_count {
                         break;
                     }

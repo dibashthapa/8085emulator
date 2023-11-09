@@ -40,6 +40,7 @@ fn main() -> eframe::Result<()> {
                     cpu.write_memory(index, *inst);
                 }
                 let assembled_count = assembled_instructions.iter().len();
+                cpu.print_memory();
                 loop {
                     match cpu.eval() {
                         Some(pc) => {

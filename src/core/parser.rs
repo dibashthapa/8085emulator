@@ -18,6 +18,10 @@ pub enum Ins<'a> {
     Inr(Registers),
     Dcr(Registers),
     Jnz(JumpTarget<'a>),
+    Jnc(JumpTarget<'a>),
+    Cmp(Registers),
+    Sta(u16),
+    Hlt,
 }
 
 #[derive(Debug, PartialEq)]
@@ -105,6 +109,29 @@ pub fn parse_instruction<'a>(
                 return create_instruction(Ins::Jnz(JumpTarget::Address(address)));
             }
             None
+        }
+        "CMP" => {
+            if let Some(Token::Register(register)) = tokens_iter.next() {
+                return create_instruction(Ins::Cmp(register));
+            }
+            None
+        }
+        "JNC" => {
+            if let Some(Token::Word(label)) = tokens_iter.next() {
+                return create_instruction(Ins::Jnc(JumpTarget::Label(label)));
+            } else if let Some(Token::Address(address)) = tokens_iter.next() {
+                return create_instruction(Ins::Jnc(JumpTarget::Address(address)));
+            }
+            None
+        }
+        "STA" => {
+            if let Some(Token::Address(address)) = tokens_iter.next() {
+                return create_instruction(Ins::Sta(address));
+            }
+            None
+        }
+        "HLT" => {
+            return create_instruction(Ins::Hlt);
         }
         _ => None,
     }

@@ -1,12 +1,17 @@
-; The first number 98H is placed in the memory location 2501 H.
-; The second number 87H is placed in the memory location 2502H.
-; The result is stored in the memory location 2503 H.
+;Find the largest number in a block of data.  
+;The length of the block is in memory location 2200H and the block itself starts from memory location 2201H.
+;Store the largest number in memory location 2300H. Assume that the numbers in the block are all 8-bit unsigned binary numbers.
 
-LXI H, 2501H ; "Address of first number in H-L pair"
-MOV A, M	 ; "1stt number in accumulator"
-INX H	     ; "Address of 2nd number in H-L pair"
-CMP M	     ; "compare 2nd number with 1st number"
-JNC AHEAD	 ; "No, larger is in accumulator. Go to AHEAD"
-MOV A, M	 ; "Yes, get 2nd number in the accumulator"
-STA 2503 H	 ; "Store larger number in 2503H"
-HLT	         ; "Stop"
+LXI H,2200H             ; Set pointer for array.
+MOV B, M                ; Load the Count.
+INX H                          
+MOV A, M                ; Set 1st element as largest data.
+DCR B                   ; Decrement the count.
+LOOP: INX H        
+CMP  M                  ; If A- reg > M go to AHEAD
+JNC AHEAD    
+MOV A, M                ; Set the new value as largest.
+AHEAD: DCR  B         
+JNZ LOOP                ; Repeat comparisons till count = 0.
+STA 2300H               ; Store the largest value at 2300.
+HLT                     ; Terminate program execution.
