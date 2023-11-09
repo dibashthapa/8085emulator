@@ -1,7 +1,7 @@
 use eframe::egui::{Context, Direction, Layout, SidePanel};
 use egui_extras::{Column, TableBuilder};
 
-use crate::core::application::Application;
+use super::application::Application;
 
 pub fn render_memory(ctx: &Context, state: &mut Application) {
     SidePanel::right("right memory").show(ctx, |ui| {

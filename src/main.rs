@@ -1,9 +1,10 @@
 mod core;
 mod gui;
 
-use core::{application::Application, token::Token};
+use core::token::Token;
 
 use eframe::NativeOptions;
+use gui::application::Application;
 
 use crate::core::{assembler::assemble, cpu::Cpu, parser::parse};
 

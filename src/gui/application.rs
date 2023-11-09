@@ -5,7 +5,7 @@ use eframe::egui::{CentralPanel, Context, TextEdit};
 
 use crate::gui::{memory::render_memory, registers::render_registers};
 
-use super::{assembler::assemble, cpu::Cpu, parser::parse, token::Token};
+use crate::core::{assembler::assemble, cpu::Cpu, parser::parse, token::Token};
 
 pub struct Application {
     pub source: String,
