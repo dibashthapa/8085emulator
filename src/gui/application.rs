@@ -46,17 +46,12 @@ impl Application {
             }
         }
 
-        loop {
-            match self.cpu.eval() {
-                Some(pc) => {
-                    dbg!(pc);
-                    if pc as usize >= assembled_count {
-                        break;
-                    }
-                }
-                None => break,
+        while let Some(pc) = self.cpu.eval() {
+            if pc as usize >= assembled_count {
+                break;
             }
         }
+
         let non_zero_entries: Vec<(usize, &u8)> = self
             .cpu
             .memory
@@ -105,8 +100,8 @@ impl eframe::App for Application {
                 self.evaluate();
             };
         });
-        render_registers(&ctx, &self);
-        render_memory(&ctx, self);
+        render_registers(ctx, self);
+        render_memory(ctx, self);
 
         ctx.request_repaint_after(Self::repaint_max_timeout());
     }

@@ -160,8 +160,7 @@ impl Cpu {
     }
 
     pub fn fetch(&mut self) -> u8 {
-        let instruction = self.memory[self.pc as usize];
-        instruction
+        self.memory[self.pc as usize]
     }
 
     pub fn eval(&mut self) -> Option<u16> {
@@ -226,13 +225,8 @@ impl Cpu {
 
             // XCHG
             0xEB => {
-                let temp = self.d;
-                self.d = self.h;
-                self.h = temp;
-
-                let temp = self.e;
-                self.e = self.l;
-                self.l = temp;
+                std::mem::swap(&mut self.d, &mut self.h);
+                std::mem::swap(&mut self.e, &mut self.l);
                 self.pc += 1;
             }
 
@@ -406,37 +400,37 @@ impl Cpu {
 
             // SUB A
             0x97 => {
-                self.accumulator = self.accumulator - self.accumulator;
+                self.accumulator = 0;
             }
 
             // SUB B
             0x90 => {
-                self.accumulator = self.accumulator - self.b;
+                self.accumulator -= self.b;
             }
 
             // SUB C
             0x91 => {
-                self.accumulator = self.accumulator - self.c;
+                self.accumulator -= self.c;
             }
 
             // SUB D
             0x92 => {
-                self.accumulator = self.accumulator - self.d;
+                self.accumulator -= self.d;
             }
 
             // SUB E
             0x93 => {
-                self.accumulator = self.accumulator - self.e;
+                self.accumulator -= self.e;
             }
 
             // SUB H
             0x94 => {
-                self.accumulator = self.accumulator - self.h;
+                self.accumulator -= self.h;
             }
 
             // SUB L
             0x95 => {
-                self.accumulator = self.accumulator - self.l;
+                self.accumulator -= self.l;
             }
 
             // ADI value
@@ -540,7 +534,6 @@ impl Cpu {
 
             // MOV A, A
             0x7F => {
-                self.accumulator = self.accumulator;
                 self.pc += 1;
             }
             // MOV A, B
@@ -587,7 +580,6 @@ impl Cpu {
             }
             // MOV B, B
             0x40 => {
-                self.b = self.b;
                 self.pc += 1;
             }
             // MOV B, C
@@ -633,7 +625,6 @@ impl Cpu {
             }
             // MOV C, C
             0x49 => {
-                self.c = self.c;
                 self.pc += 1;
             }
             // MOV C, D
@@ -671,7 +662,7 @@ impl Cpu {
 
             // MOV D, D
             0x52 => {
-                self.d = self.d;
+                self.pc += 1;
             }
             // MOV D, E
             0x53 => {
@@ -708,7 +699,7 @@ impl Cpu {
 
             // MOV E, E
             0x5B => {
-                self.e = self.e;
+                self.pc += 1;
             }
 
             // MOV E, H
@@ -745,11 +736,6 @@ impl Cpu {
             // MOV H, E
             0x63 => {
                 self.h = self.e;
-            }
-
-            // MOV H, H
-            0x64 => {
-                self.h = self.h;
             }
 
             // MOV H, L
@@ -790,7 +776,7 @@ impl Cpu {
 
             // MOV L, L
             0x6D => {
-                self.l = self.l;
+                self.pc += 1;
             }
 
             // MOV M, A
@@ -914,9 +900,7 @@ impl Cpu {
 
             // CMP A
             0xBF => {
-                self.flags.zero = self.accumulator == self.accumulator;
                 self.flags.sign = (self.accumulator.wrapping_sub(self.accumulator) & 0x80) != 0;
-                self.flags.carry = self.accumulator > self.accumulator;
             }
 
             // CMP B

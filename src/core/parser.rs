@@ -171,7 +171,13 @@ mod tests {
     use super::parse;
 
     use logos::Logos;
-
+    macro_rules! parse_code {
+        ($code:expr) => {{
+            let lex = Token::lexer($code);
+            let tokens: Vec<_> = lex.filter_map(|token| token.ok()).collect();
+            parse(tokens)
+        }};
+    }
     #[test]
     fn test_loop() {
         let code = r#"
@@ -180,9 +186,7 @@ mod tests {
             MVI C,0AH
             X: MOV M,B
         "#;
-        let lex = Token::lexer(&code);
-        let tokens: Vec<_> = lex.filter_map(|token| token.ok()).collect();
-        let instructions = parse(tokens);
+        let instructions = parse_code!(code);
         assert_eq!(
             instructions,
             vec![

@@ -41,15 +41,9 @@ fn main() -> eframe::Result<()> {
                     cpu.write_memory(index, *inst);
                 }
                 let assembled_count = assembled_instructions.iter().len();
-                cpu.print_memory();
-                loop {
-                    match cpu.eval() {
-                        Some(pc) => {
-                            if pc as usize >= assembled_count {
-                                break;
-                            }
-                        }
-                        None => break,
+                while let Some(pc) = cpu.eval() {
+                    if pc as usize >= assembled_count {
+                        break;
                     }
                 }
                 cpu.print_memory();
