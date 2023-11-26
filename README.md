@@ -1,13 +1,12 @@
-
 # 8085 Microprocessor Emulator
-Emulator for 8085 from scratch using Rust. 
 
+Emulator for 8085 from scratch using Rust.
 
+<img src="images/8085emulator.png">
 
 ## Documentation
+
 See the [documentation](DOCUMENTATION.md) for more information.
-
-
 
 ## Installation
 
@@ -17,13 +16,9 @@ Install with cargo
 cargo build
 ```
 
-
-    
 ## Lessons Learned
 
-I shouldn't have skipped my digital logic classes. 
-
-
+I shouldn't have skipped my digital logic classes.
 
 ## Roadmap
 
@@ -31,14 +26,8 @@ I shouldn't have skipped my digital logic classes.
 
 - Support flag registers
 
-
-
-
 ## Contributing
 
 Contributions are always welcome!
 
 See the [Contribution](CONTRIBUTING.md) for ways to get started.
-
-
-
