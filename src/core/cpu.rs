@@ -94,6 +94,14 @@ impl Cpu {
         println!("----------------");
     }
 
+    pub fn reset_pc(&mut self) {
+        self.pc = 0;
+    }
+
+    pub fn reset_flags(&mut self) {
+        self.flags = FlagRegisters::new()
+    }
+
     pub fn reset_registers(&mut self) {
         self.pc = 0;
         self.sp = 0;

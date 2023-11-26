@@ -31,6 +31,8 @@ impl Application {
     fn reset(&mut self) {
         self.cpu.reset_memory();
         self.cpu.reset_registers();
+        self.cpu.reset_pc();
+        self.cpu.reset_flags();
         self.address = vec![(String::new(), String::new()); 0xFFFF];
         self.assembled_instructions = vec![];
     }
@@ -76,7 +78,6 @@ impl Application {
         self.assembled_instructions = assemble(&instructions);
 
         for (i, instruction) in self.assembled_instructions.iter().enumerate() {
-            self.cpu.write_memory(i, *instruction);
             self.address[i].0 = format!("{:04X}", i);
             self.address[i].1 = format!("{:02X}", instruction);
         }
