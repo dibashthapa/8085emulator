@@ -3,6 +3,7 @@
 Emulator for 8085 from scratch using Rust.
 
 <img src="images/8085emulator.png">
+<center><i>Program to loop from 01 to 04</i></center>
 
 ## Documentation
 
