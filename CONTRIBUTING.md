@@ -21,6 +21,7 @@ We appreciate any improvements or new features you can bring to the 8085 Emulato
 4. **Submit** a pull request, providing a detailed explanation of the changes you have made.
 
 ## How it works ?
+
 <img src="images/8085_working.png">
 
 ## Development Setup
@@ -46,17 +47,6 @@ To set up the development environment for the 8085 Emulator, follow these steps:
    ```
    cargo test
    ```
-
-## Codebase Structure
-
-Our codebase follows a specific structure to maintain consistency and readability:
-
-- `cpu.rs`: Contains the interpreter to execute parsed data.
-- `token.rs`: Lists the tokens parsed from the string.
-- `parser.rs`: Parses the tokens into Rust enums.
-- `memory.rs`: Read and write operations to the memory address
-
-If you're contributing new features, ensure they align with the existing code structure and follow Rust's best practices.
 
 ## Code Formatting
 
