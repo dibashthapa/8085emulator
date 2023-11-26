@@ -13,6 +13,7 @@ pub enum Ins<'a> {
     Jmp(JumpTarget<'a>),
     Add(Registers),
     Adi(u8),
+    Sub(Registers),
     Lxi(Registers, u16),
     Inx(Registers),
     Inr(Registers),
@@ -73,6 +74,12 @@ pub fn parse_instruction<'a>(
         "ADI" => {
             if let Some(Token::Number(value)) = tokens_iter.next() {
                 return create_instruction(Ins::Adi(value));
+            }
+            None
+        }
+        "SUB" => {
+            if let Some(Token::Register(register)) = tokens_iter.next() {
+                return create_instruction(Ins::Sub(register));
             }
             None
         }

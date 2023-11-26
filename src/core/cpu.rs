@@ -414,38 +414,38 @@ impl Cpu {
             // SUB B
             0x90 => {
                 self.accumulator -= self.b;
+                self.pc += 1;
             }
 
             // SUB C
             0x91 => {
                 self.accumulator -= self.c;
+                self.pc += 1;
             }
 
             // SUB D
             0x92 => {
                 self.accumulator -= self.d;
+                self.pc += 1;
             }
 
             // SUB E
             0x93 => {
                 self.accumulator -= self.e;
+                self.pc += 1;
             }
 
             // SUB H
             0x94 => {
                 self.accumulator -= self.h;
+                self.pc += 1;
             }
 
             // SUB L
             0x95 => {
                 self.accumulator -= self.l;
+                self.pc += 1;
             }
-
-            // ADI value
-            // 0xC6 => {
-            //     let value = self.fetch();
-            //     self.accumulator = self.accumulator + value;
-            // }
 
             // ADD A
             0x87 => {

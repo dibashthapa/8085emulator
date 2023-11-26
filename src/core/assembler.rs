@@ -253,6 +253,14 @@ pub fn assemble(instructions: &Vec<Instruction>) -> Vec<u8> {
             Ins::Add(Registers::RegH) => {
                 assembled_instructions.push(0x84);
             }
+            Ins::Sub(Registers::RegA) => assembled_instructions.push(0x97),
+            Ins::Sub(Registers::RegB) => assembled_instructions.push(0x90),
+            Ins::Sub(Registers::RegC) => assembled_instructions.push(0x91),
+            Ins::Sub(Registers::RegD) => assembled_instructions.push(0x92),
+            Ins::Sub(Registers::RegE) => assembled_instructions.push(0x93),
+            Ins::Sub(Registers::RegH) => assembled_instructions.push(0x94),
+            Ins::Sub(Registers::RegL) => assembled_instructions.push(0x95),
+            Ins::Sub(Registers::RegM) => assembled_instructions.push(0x96),
             Ins::Lxi(registers, address) => match registers {
                 Registers::RegH => {
                     assembled_instructions.push(0x21);

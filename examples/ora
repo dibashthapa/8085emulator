@@ -1,4 +1,0 @@
-MVI A, AE ; Load 99 into the accumulator
-MVI B, B5 ; Load 98 into the B register
-ORA B     ; OR the contents of the accumulator with the contents of the B register
-HLT       ; Halt the program
