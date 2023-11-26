@@ -1,0 +1,4 @@
+MVI A, 49
+MVI B, 32
+SUB B
+HLT
