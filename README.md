@@ -1,9 +1,7 @@
 # 8085 Microprocessor Emulator
 
 Emulator for 8085 from scratch using Rust.
-
-<img src="images/8085emulator.png">
-<center><i>Program to loop from 01 to 04</i></center>
+![8085](images/8085emulator.png 'Program to loop from 01 to 04')
 
 ## Documentation
 
