@@ -444,6 +444,31 @@ pub fn assemble(instructions: &Vec<Instruction>) -> Vec<u8> {
             Ins::Add(Registers::RegL) => {
                 assembled_instructions.push(0x85);
             }
+            Ins::Lhld(address) => {
+                assembled_instructions.push(0x2A);
+                let (low_byte, high_byte) = split_address(address);
+                assembled_instructions.push(low_byte);
+                assembled_instructions.push(high_byte);
+            }
+            Ins::Xchg => {
+                assembled_instructions.push(0xEB);
+            }
+            Ins::Shld(address) => {
+                assembled_instructions.push(0x22);
+                let (low_byte, high_byte) = split_address(address);
+                assembled_instructions.push(low_byte);
+                assembled_instructions.push(high_byte);
+            }
+            Ins::Adc(register) => match register {
+                Registers::RegA => assembled_instructions.push(0xC6),
+                Registers::RegB => assembled_instructions.push(0x8F),
+                Registers::RegC => assembled_instructions.push(0x88),
+                Registers::RegD => assembled_instructions.push(0x89),
+                Registers::RegE => assembled_instructions.push(0x8B),
+                Registers::RegH => assembled_instructions.push(0x8C),
+                Registers::RegL => assembled_instructions.push(0x8D),
+                Registers::RegM => assembled_instructions.push(0x8E),
+            },
             Ins::Hlt => {
                 assembled_instructions.push(0x76);
             }

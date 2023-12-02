@@ -74,7 +74,6 @@ impl Application {
         let lexer = Token::lexer(&self.source);
         let tokens: Vec<_> = lexer.filter_map(|token| token.ok()).collect();
         let instructions = parse(tokens);
-        dbg!(&instructions);
         self.assembled_instructions = assemble(&instructions);
 
         for (i, instruction) in self.assembled_instructions.iter().enumerate() {

@@ -13,12 +13,16 @@ pub enum Ins<'a> {
     Jmp(JumpTarget<'a>),
     Add(Registers),
     Adi(u8),
+    Adc(Registers),
     Sub(Registers),
     Lxi(Registers, u16),
     Inx(Registers),
     Inr(Registers),
     Dcr(Registers),
     Jnz(JumpTarget<'a>),
+    Lhld(u16),
+    Xchg,
+    Shld(u16),
     Jnc(JumpTarget<'a>),
     Cmp(Registers),
     Sta(u16),
@@ -137,10 +141,34 @@ pub fn parse_instruction<'a>(
             }
             None
         }
+        "LHLD" => {
+            if let Some(Token::Address(address)) = tokens_iter.next() {
+                return create_instruction(Ins::Lhld(address));
+            }
+            None
+        }
+        "SHLD" => {
+            if let Some(Token::Address(address)) = tokens_iter.next() {
+                return create_instruction(Ins::Shld(address));
+            }
+            None
+        }
+        "XCHG" => create_instruction(Ins::Xchg),
+        "ADC" => {
+            if let Some(Token::Register(register)) = tokens_iter.next() {
+                return create_instruction(Ins::Adc(register));
+            }
+            None
+        }
         "HLT" => {
             return create_instruction(Ins::Hlt);
         }
-        _ => None,
+        _ => {
+            unimplemented!(
+                "{}",
+                format!("Instruction {} hasn't been implemented yet", word)
+            );
+        }
     }
 }
 pub fn parse(tokens: Vec<Token>) -> Vec<Instruction> {

@@ -271,11 +271,10 @@ impl Cpu {
                 let address = u16::from_be_bytes([high_byte_address, low_byte_address]);
                 let low_byte = self.read_memory(address as usize);
                 let high_byte = self.read_memory((address + 1) as usize);
-                self.l = low_byte;
-                self.h = high_byte;
-
-                let low_byte = self.read_memory(address as usize);
-                let high_byte = self.read_memory((address + 1) as usize);
+                println!(
+                    "high byte is {:X}, and low byte is {:X}",
+                    high_byte, low_byte
+                );
                 self.l = low_byte;
                 self.h = high_byte;
                 self.pc += 1;
@@ -447,6 +446,14 @@ impl Cpu {
                 self.pc += 1;
             }
 
+            // SUB M
+            0x96 => {
+                let address = u16::from_be_bytes([self.h, self.l]);
+                let value = self.read_memory(address as usize);
+                self.accumulator -= value;
+                self.pc += 1;
+            }
+
             // ADD A
             0x87 => {
                 if let Some(result) = self.accumulator.checked_add(self.accumulator) {
@@ -513,6 +520,19 @@ impl Cpu {
                 self.pc += 1;
             }
 
+            // ADD M
+            0x86 => {
+                let address = u16::from_be_bytes([self.h, self.l]);
+                let value = self.read_memory(address as usize);
+
+                if let Some(result) = self.accumulator.checked_add(value) {
+                    self.accumulator = result;
+                } else {
+                    self.flags.carry = true;
+                }
+
+                self.pc += 1;
+            }
             // LXI B, value
             0x01 => {
                 let high_byte = self.fetch();
@@ -789,15 +809,14 @@ impl Cpu {
 
             // MOV M, A
             0x77 => {
-                let address = u16::from_be_bytes([self.l, self.h]);
-                self.write_memory(address as usize, self.c);
+                let address = u16::from_be_bytes([self.h, self.l]);
+                self.write_memory(address as usize, self.accumulator);
                 self.pc += 1;
             }
 
             // MOV M, B
             0x70 => {
                 let address = u16::from_be_bytes([self.h, self.l]);
-                dbg!(format!("{:04x}", address));
                 self.write_memory(address as usize, self.b);
                 self.pc += 1;
             }
