@@ -271,10 +271,6 @@ impl Cpu {
                 let address = u16::from_be_bytes([high_byte_address, low_byte_address]);
                 let low_byte = self.read_memory(address as usize);
                 let high_byte = self.read_memory((address + 1) as usize);
-                println!(
-                    "high byte is {:X}, and low byte is {:X}",
-                    high_byte, low_byte
-                );
                 self.l = low_byte;
                 self.h = high_byte;
                 self.pc += 1;
