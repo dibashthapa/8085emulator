@@ -1,7 +1,7 @@
 use eframe::egui::{Context, TopBottomPanel};
 use egui_extras::{Column, TableBuilder};
 
-use crate::Application;
+use super::application::Application;
 
 const HEIGHT: f32 = 400.;
 

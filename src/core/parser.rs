@@ -1,5 +1,12 @@
-use super::{cpu::Registers, token::Token};
-
+use crate::{cpu::Registers, token::Token};
+static MNEMONICS: &[&str] = &[
+    "ACI", "ADC", "ADD", "ADI", "ANA", "ANI", "CALL", "CC", "CM", "CMA", "CMC", "CMP", "CNC",
+    "CNZ", "CP", "CPE", "CPI", "CPO", "CZ", "DAA", "DAD", "DCR", "DCX", "DI", "EI", "HLT", "IN",
+    "INR", "INX", "JC", "JM", "JMP", "JNC", "JNZ", "JP", "JPE", "JPO", "JZ", "LDA", "LDAX", "LHLD",
+    "LXI", "MOV", "MVI", "NOP", "ORA", "ORI", "OUT", "PCHL", "POP", "PUSH", "RAL", "RAR", "RC",
+    "RET", "RLC", "RM", "RNC", "RNZ", "RP", "RPE", "RPO", "RRC", "RST", "RZ", "SBB", "SBI", "SHLD",
+    "SPHL", "STA", "STAX", "STC", "SUB", "SUI", "XCHG", "XRA", "XRI", "XTHL",
+];
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum JumpTarget<'a> {
     Address(u16),
@@ -16,6 +23,7 @@ pub enum Ins<'a> {
     Adc(Registers),
     Sub(Registers),
     Lxi(Registers, u16),
+    Lda(u16),
     Inx(Registers),
     Inr(Registers),
     Dcr(Registers),
@@ -26,6 +34,7 @@ pub enum Ins<'a> {
     Jnc(JumpTarget<'a>),
     Cmp(Registers),
     Sta(u16),
+    Ani(u8),
     Hlt,
 }
 
@@ -160,6 +169,18 @@ pub fn parse_instruction<'a>(
             }
             None
         }
+        "LDA" => {
+            if let Some(Token::Address(address)) = tokens_iter.next() {
+                return create_instruction(Ins::Lda(address));
+            }
+            None
+        }
+        "ANI" => {
+            if let Some(Token::Number(value)) = tokens_iter.next() {
+                return create_instruction(Ins::Ani(value));
+            }
+            None
+        }
         "HLT" => {
             return create_instruction(Ins::Hlt);
         }
@@ -186,8 +207,10 @@ pub fn parse(tokens: Vec<Token>) -> Vec<Instruction> {
                 }
             }
             Token::Word(word) => {
-                if let Some(instruction) = parse_instruction(word, &mut tokens) {
-                    instructions.push(instruction);
+                if MNEMONICS.contains(&word) {
+                    if let Some(instruction) = parse_instruction(word, &mut tokens) {
+                        instructions.push(instruction);
+                    }
                 }
             }
             _ => {}
@@ -196,6 +219,7 @@ pub fn parse(tokens: Vec<Token>) -> Vec<Instruction> {
     instructions
 }
 
+#[macro_export]
 #[cfg(test)]
 mod tests {
     use crate::core::{

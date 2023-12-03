@@ -469,6 +469,16 @@ pub fn assemble(instructions: &Vec<Instruction>) -> Vec<u8> {
                 Registers::RegL => assembled_instructions.push(0x8D),
                 Registers::RegM => assembled_instructions.push(0x8E),
             },
+            Ins::Lda(address) => {
+                assembled_instructions.push(0x3A);
+                let (low_byte, high_byte) = split_address(address);
+                assembled_instructions.push(low_byte);
+                assembled_instructions.push(high_byte);
+            }
+            Ins::Ani(value) => {
+                assembled_instructions.push(0xE6);
+                assembled_instructions.push(value);
+            }
             Ins::Hlt => {
                 assembled_instructions.push(0x76);
             }

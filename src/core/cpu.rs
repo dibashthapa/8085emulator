@@ -846,7 +846,9 @@ impl Cpu {
             }
             // MVI H, value
             0x26 => {
+                self.pc += 1;
                 self.h = self.fetch();
+                self.pc += 1;
             }
             // MVI L, value
             0x2E => {
@@ -1036,6 +1038,14 @@ impl Cpu {
                 } else {
                     self.pc += 1;
                 }
+            }
+
+            // ANI value
+            0xE6 => {
+                self.pc += 1;
+                let value = self.fetch();
+                self.accumulator = self.accumulator & value;
+                self.pc += 1;
             }
             0x76 => return None,
             _ => {}

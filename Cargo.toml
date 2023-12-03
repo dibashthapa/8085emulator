@@ -1,5 +1,5 @@
 [package]
-name = "little-computer"
+name = "emulator-8085"
 version = "0.1.0"
 edition = "2021"
 
