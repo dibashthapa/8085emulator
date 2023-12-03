@@ -15,6 +15,20 @@ Install with cargo
 cargo build
 ```
 
+## How to Run
+
+### CLI
+
+```bash
+cargo run --bin cli <filename>
+```
+
+### GUI
+
+```bash
+cargo run --bin app
+```
+
 ## Lessons Learned
 
 I shouldn't have skipped my digital logic classes.
