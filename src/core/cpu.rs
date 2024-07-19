@@ -852,7 +852,9 @@ impl Cpu {
             }
             // MVI L, value
             0x2E => {
+                self.pc += 1;
                 self.l = self.fetch();
+                self.pc += 1;
             }
 
             // ANA A

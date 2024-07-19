@@ -1,11 +1,13 @@
 use logos::Logos;
+use std::fs;
 use std::time::Duration;
 
-use eframe::egui::{CentralPanel, Context, TextEdit};
+use eframe::egui::{include_image, CentralPanel, Context, Image, TextEdit, TextStyle, Vec2};
 
 use crate::gui::{memory::render_memory, registers::render_registers};
 
 use crate::core::{assembler::assemble, cpu::Cpu, parser::parse, token::Token};
+use crate::syntax_highlighting;
 
 pub struct Application {
     pub source: String,
@@ -85,20 +87,56 @@ impl Application {
 
 impl eframe::App for Application {
     fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+        use eframe::egui::{menu, TopBottomPanel};
+
+        TopBottomPanel::top("top_panel").show(ctx, |ui| {
+            menu::bar(ui, |ui| {
+                ui.menu_button("File", |ui| {
+                    if ui.button("Open File").clicked() {
+                        if let Some(path) = rfd::FileDialog::new().pick_file() {
+                            self.source = fs::read_to_string(path).unwrap();
+                        }
+                    }
+
+                    if ui.button("Save").clicked() {}
+                });
+                ui.menu_button("Edit", |ui| {});
+                ui.menu_button("Debug", |ui| {});
+            });
+        });
+        // set height and width
+        let debug_icon = Image::new(include_image!("../icons/bug-play.svg"))
+            .fit_to_exact_size(Vec2::new(40.0, 40.0));
+
+        let play_icon = Image::new(include_image!("../icons/play.svg"))
+            .fit_to_exact_size(Vec2::new(40.0, 40.0));
+
+        TopBottomPanel::top("secondary_panel").show(ctx, |ui| {
+            menu::bar(ui, |ui| {
+                let response = ui.menu_image_button(play_icon, |ui| {});
+                if response.response.clicked() {
+                    self.assemble();
+                    self.evaluate();
+                }
+
+                ui.menu_image_button(debug_icon, |ui| {})
+            });
+        });
         CentralPanel::default().show(ctx, |ui| {
-            ui.add(
-                TextEdit::multiline(&mut self.source)
-                    .code_editor()
-                    .desired_rows(20)
-                    .desired_width(500.),
-            );
-            if ui.button("Assemble").clicked() {
-                self.assemble();
+            let mut layouter = |ui: &eframe::egui::Ui, text: &str, wrap_width: f32| {
+                let mut layout_job = syntax_highlighting::highlight(&text);
+                layout_job.wrap.max_width = wrap_width;
+                ui.fonts(|f| f.layout_job(layout_job))
             };
 
-            if ui.button("Run").clicked() {
-                self.evaluate();
-            };
+            ui.add(
+                TextEdit::multiline(&mut self.source)
+                    .font(TextStyle::Monospace)
+                    .code_editor()
+                    .desired_rows(20)
+                    .desired_width(500.)
+                    .layouter(&mut layouter),
+            );
         });
         render_registers(ctx, self);
         render_memory(ctx, self);
