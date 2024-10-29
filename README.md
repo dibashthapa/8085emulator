@@ -1,4 +1,5 @@
 # 8085 Microprocessor Emulator
+This is being rewritten in javascript, and the original rust code is moved to `rust` branch
 
 Emulator for 8085 from scratch using Rust.
 ![8085](images/8085emulator.png 'Program to loop from 01 to 04')
