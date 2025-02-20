@@ -14,17 +14,22 @@ pub fn main() {
     let lexer = Token::lexer(&source);
     let tokens: Vec<_> = lexer.filter_map(|token| token.ok()).collect();
     let instructions = parse(tokens);
-    let assembled_instructions = assemble(&instructions);
-    let mut cpu = Cpu::new();
-    for (index, inst) in assembled_instructions.iter().enumerate() {
-        cpu.write_memory(index, *inst);
-    }
-    let assembled_count = assembled_instructions.iter().len();
-    while let Some(pc) = cpu.eval() {
-        if pc as usize >= assembled_count {
-            break;
+    match instructions {
+        Ok(instructions) => {
+            let assembled_instructions = assemble(&instructions);
+            let mut cpu = Cpu::new();
+            for (index, inst) in assembled_instructions.iter().enumerate() {
+                cpu.write_memory(index, *inst);
+            }
+            let assembled_count = assembled_instructions.iter().len();
+            while let Some(pc) = cpu.eval() {
+                if pc as usize >= assembled_count {
+                    break;
+                }
+            }
+            cpu.print_memory();
+            cpu.print();
         }
+        Err(err) => eprintln!("{}", err),
     }
-    cpu.print_memory();
-    cpu.print();
 }

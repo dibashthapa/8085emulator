@@ -1,3 +1,5 @@
+use std::fmt::{write, Display};
+
 use super::cpu::Registers;
 use logos::Logos;
 

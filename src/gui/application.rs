@@ -76,11 +76,16 @@ impl Application {
         let lexer = Token::lexer(&self.source);
         let tokens: Vec<_> = lexer.filter_map(|token| token.ok()).collect();
         let instructions = parse(tokens);
-        self.assembled_instructions = assemble(&instructions);
+        match instructions {
+            Ok(instructions) => {
+                self.assembled_instructions = assemble(&instructions);
 
-        for (i, instruction) in self.assembled_instructions.iter().enumerate() {
-            self.address[i].0 = format!("{:04X}", i);
-            self.address[i].1 = format!("{:02X}", instruction);
+                for (i, instruction) in self.assembled_instructions.iter().enumerate() {
+                    self.address[i].0 = format!("{:04X}", i);
+                    self.address[i].1 = format!("{:02X}", instruction);
+                }
+            }
+            Err(err) => eprintln!("{}", err),
         }
     }
 }

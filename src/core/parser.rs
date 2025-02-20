@@ -1,4 +1,5 @@
 use crate::{cpu::Registers, token::Token};
+use std::fmt;
 static MNEMONICS: &[&str] = &[
     "ACI", "ADC", "ADD", "ADI", "ANA", "ANI", "CALL", "CC", "CM", "CMA", "CMC", "CMP", "CNC",
     "CNZ", "CP", "CPE", "CPI", "CPO", "CZ", "DAA", "DAD", "DCR", "DCX", "DI", "EI", "HLT", "IN",
@@ -38,161 +39,177 @@ pub enum Ins<'a> {
     Hlt,
 }
 
+#[derive(Debug)]
+pub enum ParseError {
+    UnexpectedToken(String),
+    MissingToken,
+    UnimplementedInstruction(String),
+}
+
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ParseError::UnexpectedToken(token) => write!(f, "Unexpected token: {}", token),
+            ParseError::MissingToken => write!(f, "Missing token"),
+            ParseError::UnimplementedInstruction(instruction) => {
+                write!(f, "Instruction '{}' is not implemented", instruction)
+            }
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct Instruction<'a> {
     pub label: Option<&'a str>,
     pub ins: Ins<'a>,
 }
 
-pub fn create_instruction(ins: Ins) -> Option<Instruction> {
-    Some(Instruction { label: None, ins })
+pub fn create_instruction(ins: Ins) -> Instruction {
+    Instruction { label: None, ins }
+}
+
+fn next_register<'a>(
+    tokens_iter: &mut impl Iterator<Item = Token<'a>>,
+) -> Result<Registers, ParseError> {
+    match tokens_iter.next() {
+        Some(Token::Register(register)) => Ok(register),
+        Some(token) => Err(ParseError::UnexpectedToken(format!(
+            "Expected register, but received {:?}",
+            token
+        ))),
+        None => Err(ParseError::MissingToken),
+    }
+}
+
+fn next_number<'a>(tokens_iter: &mut impl Iterator<Item = Token<'a>>) -> Result<u8, ParseError> {
+    match tokens_iter.next() {
+        Some(Token::Number(value)) => Ok(value),
+        Some(token) => Err(ParseError::UnexpectedToken(format!(
+            "Expected number, but received {:?}",
+            token
+        ))),
+        None => Err(ParseError::MissingToken),
+    }
+}
+
+fn next_address<'a>(tokens_iter: &mut impl Iterator<Item = Token<'a>>) -> Result<u16, ParseError> {
+    match tokens_iter.next() {
+        Some(Token::Address(address)) => Ok(address),
+        Some(token) => Err(ParseError::UnexpectedToken(format!(
+            "Expected address, but received {:?}",
+            token
+        ))),
+        None => Err(ParseError::MissingToken),
+    }
+}
+
+fn next_jump_target<'a>(
+    tokens_iter: &mut impl Iterator<Item = Token<'a>>,
+) -> Result<JumpTarget<'a>, ParseError> {
+    match tokens_iter.next() {
+        Some(Token::Word(label)) => Ok(JumpTarget::Label(label)),
+        Some(Token::Address(address)) => Ok(JumpTarget::Address(address)),
+        Some(token) => Err(ParseError::UnexpectedToken(format!(
+            "Expected address or label, but received {:?}",
+            token
+        ))),
+        None => Err(ParseError::MissingToken),
+    }
 }
 
 pub fn parse_instruction<'a>(
     word: &str,
     tokens_iter: &mut impl Iterator<Item = Token<'a>>,
-) -> Option<Instruction<'a>> {
+) -> Result<Instruction<'a>, ParseError> {
     match word {
         "MVI" => {
-            let register = tokens_iter.next();
-            let value = tokens_iter.next();
-            if let (Some(Token::Register(register)), Some(Token::Number(value))) = (register, value)
-            {
-                return create_instruction(Ins::Mvi(register, value));
-            }
-            None
+            let register = next_register(tokens_iter)?;
+            let value = next_number(tokens_iter)?;
+            Ok(create_instruction(Ins::Mvi(register, value)))
         }
         "JMP" => {
-            if let Some(Token::Word(label)) = tokens_iter.next() {
-                return create_instruction(Ins::Jmp(JumpTarget::Label(label)));
-            } else if let Some(Token::Address(address)) = tokens_iter.next() {
-                return create_instruction(Ins::Jmp(JumpTarget::Address(address)));
-            }
-            None
+            let target = next_jump_target(tokens_iter)?;
+            Ok(create_instruction(Ins::Jmp(target)))
         }
         "MOV" => {
-            if let (Some(Token::Register(dest)), Some(Token::Register(source))) =
-                (tokens_iter.next(), tokens_iter.next())
-            {
-                return create_instruction(Ins::Mov(dest, source));
-            }
-            None
+            let dest = next_register(tokens_iter)?;
+            let source = next_register(tokens_iter)?;
+            Ok(create_instruction(Ins::Mov(dest, source)))
         }
         "ADD" => {
-            if let Some(Token::Register(register)) = tokens_iter.next() {
-                return create_instruction(Ins::Add(register));
-            }
-            None
+            let register = next_register(tokens_iter)?;
+            Ok(create_instruction(Ins::Add(register)))
         }
         "ADI" => {
-            if let Some(Token::Number(value)) = tokens_iter.next() {
-                return create_instruction(Ins::Adi(value));
-            }
-            None
+            let value = next_number(tokens_iter)?;
+            Ok(create_instruction(Ins::Adi(value)))
         }
         "SUB" => {
-            if let Some(Token::Register(register)) = tokens_iter.next() {
-                return create_instruction(Ins::Sub(register));
-            }
-            None
+            let register = next_register(tokens_iter)?;
+            Ok(create_instruction(Ins::Sub(register)))
         }
         "LXI" => {
-            if let (Some(Token::Register(register)), Some(Token::Address(address))) =
-                (tokens_iter.next(), tokens_iter.next())
-            {
-                return create_instruction(Ins::Lxi(register, address));
-            }
-            None
+            let register = next_register(tokens_iter)?;
+            let address = next_address(tokens_iter)?;
+            Ok(create_instruction(Ins::Lxi(register, address)))
         }
         "INX" => {
-            if let Some(Token::Register(register)) = tokens_iter.next() {
-                return create_instruction(Ins::Inx(register));
-            }
-            None
+            let register = next_register(tokens_iter)?;
+            Ok(create_instruction(Ins::Inx(register)))
         }
         "INR" => {
-            if let Some(Token::Register(register)) = tokens_iter.next() {
-                return create_instruction(Ins::Inr(register));
-            }
-            None
+            let register = next_register(tokens_iter)?;
+            Ok(create_instruction(Ins::Inr(register)))
         }
         "DCR" => {
-            if let Some(Token::Register(register)) = tokens_iter.next() {
-                return create_instruction(Ins::Dcr(register));
-            }
-            None
+            let register = next_register(tokens_iter)?;
+            Ok(create_instruction(Ins::Dcr(register)))
         }
         "JNZ" => {
-            if let Some(Token::Word(label)) = tokens_iter.next() {
-                return create_instruction(Ins::Jnz(JumpTarget::Label(label)));
-            } else if let Some(Token::Address(address)) = tokens_iter.next() {
-                return create_instruction(Ins::Jnz(JumpTarget::Address(address)));
-            }
-            None
+            let target = next_jump_target(tokens_iter)?;
+            Ok(create_instruction(Ins::Jnz(target)))
         }
         "CMP" => {
-            if let Some(Token::Register(register)) = tokens_iter.next() {
-                return create_instruction(Ins::Cmp(register));
-            }
-            None
+            let register = next_register(tokens_iter)?;
+            Ok(create_instruction(Ins::Cmp(register)))
         }
         "JNC" => {
-            if let Some(Token::Word(label)) = tokens_iter.next() {
-                return create_instruction(Ins::Jnc(JumpTarget::Label(label)));
-            } else if let Some(Token::Address(address)) = tokens_iter.next() {
-                return create_instruction(Ins::Jnc(JumpTarget::Address(address)));
-            }
-            None
+            let target = next_jump_target(tokens_iter)?;
+            Ok(create_instruction(Ins::Jnc(target)))
         }
         "STA" => {
-            if let Some(Token::Address(address)) = tokens_iter.next() {
-                return create_instruction(Ins::Sta(address));
-            }
-            None
+            let address = next_address(tokens_iter)?;
+            Ok(create_instruction(Ins::Sta(address)))
         }
         "LHLD" => {
-            if let Some(Token::Address(address)) = tokens_iter.next() {
-                return create_instruction(Ins::Lhld(address));
-            }
-            None
+            let address = next_address(tokens_iter)?;
+            Ok(create_instruction(Ins::Lhld(address)))
         }
         "SHLD" => {
-            if let Some(Token::Address(address)) = tokens_iter.next() {
-                return create_instruction(Ins::Shld(address));
-            }
-            None
+            let address = next_address(tokens_iter)?;
+            Ok(create_instruction(Ins::Shld(address)))
         }
-        "XCHG" => create_instruction(Ins::Xchg),
+        "XCHG" => Ok(create_instruction(Ins::Xchg)),
         "ADC" => {
-            if let Some(Token::Register(register)) = tokens_iter.next() {
-                return create_instruction(Ins::Adc(register));
-            }
-            None
+            let register = next_register(tokens_iter)?;
+            Ok(create_instruction(Ins::Adc(register)))
         }
         "LDA" => {
-            if let Some(Token::Address(address)) = tokens_iter.next() {
-                return create_instruction(Ins::Lda(address));
-            }
-            None
+            let address = next_address(tokens_iter)?;
+            Ok(create_instruction(Ins::Lda(address)))
         }
         "ANI" => {
-            if let Some(Token::Number(value)) = tokens_iter.next() {
-                return create_instruction(Ins::Ani(value));
-            }
-            None
+            let value = next_number(tokens_iter)?;
+            Ok(create_instruction(Ins::Ani(value)))
         }
-        "HLT" => {
-            return create_instruction(Ins::Hlt);
-        }
-        _ => {
-            unimplemented!(
-                "{}",
-                format!("Instruction {} hasn't been implemented yet", word)
-            );
-        }
+        "HLT" => Ok(create_instruction(Ins::Hlt)),
+        remaining => Err(ParseError::UnimplementedInstruction(format!(
+            "Instruction {} hasn't been implemented yet",
+            remaining
+        ))),
     }
 }
-pub fn parse(tokens: Vec<Token>) -> Vec<Instruction> {
+pub fn parse(tokens: Vec<Token>) -> Result<Vec<Instruction>, ParseError> {
     let mut tokens = tokens.into_iter();
     let mut instructions = Vec::new();
 
@@ -200,23 +217,21 @@ pub fn parse(tokens: Vec<Token>) -> Vec<Instruction> {
         match token {
             Token::Label(label) => {
                 if let Some(Token::Word(word)) = tokens.next() {
-                    if let Some(mut instruction) = parse_instruction(word, &mut tokens) {
-                        instruction.label = Some(label);
-                        instructions.push(instruction);
-                    }
+                    let mut instruction = parse_instruction(word, &mut tokens)?;
+                    instruction.label = Some(label);
+                    instructions.push(instruction);
                 }
             }
             Token::Word(word) => {
                 if MNEMONICS.contains(&word) {
-                    if let Some(instruction) = parse_instruction(word, &mut tokens) {
-                        instructions.push(instruction);
-                    }
+                    let instruction = parse_instruction(word, &mut tokens)?;
+                    instructions.push(instruction);
                 }
             }
             _ => {}
         }
     }
-    instructions
+    Ok(instructions)
 }
 
 #[macro_export]
@@ -247,7 +262,7 @@ mod tests {
         "#;
         let instructions = parse_code!(code);
         assert_eq!(
-            instructions,
+            instructions.unwrap(),
             vec![
                 Instruction {
                     label: None,
